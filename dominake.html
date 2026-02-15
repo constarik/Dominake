@@ -80,7 +80,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v12.3</span></h1>
+<h1>🐍 Dominake <span class="ver">v12.4</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -137,14 +137,14 @@ function initSizes(){
   const row=document.getElementById('szRow');
   SIZES.forEach((s,i)=>{const b=document.createElement('button');b.id='sz'+i;b.className=i===curSize?'on':'';b.innerHTML=s.label+'<span class="sz-label">'+s.sub+'</span>';b.onclick=()=>setSize(i);row.appendChild(b)});
 }
-function setSize(i){curSize=i;applySize();document.querySelectorAll('[id^=sz]').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
+function setSize(i){curSize=i;applySize();document.querySelectorAll('#szRow button').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
 function applySize(){const s=SIZES[curSize];ROWS=s.rows;COLS=s.cols;MAX_NUM=s.max;TOTAL=ROWS*COLS}
 
 function initDiffs(){
   const row=document.getElementById('diffRow');
   DIFFS.forEach((d,i)=>{const b=document.createElement('button');b.id='df'+i;b.className=i===curDiff?'on':'';b.textContent=d.emoji+' '+d.name;b.onclick=()=>setDiff(i);row.appendChild(b)});
 }
-function setDiff(i){curDiff=i;document.querySelectorAll('[id^=df]').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
+function setDiff(i){curDiff=i;document.querySelectorAll('#diffRow button').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
 
 function cellSize(){const maxW=Math.min(window.innerWidth-24,500);return Math.max(28,Math.min(Math.floor(maxW/COLS),52))}
 
