@@ -80,7 +80,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v12.2</span></h1>
+<h1>🐍 Dominake <span class="ver">v12.3</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -234,7 +234,7 @@ function showSolution(){
     placed.push({r1:c1.r,c1:c1.c,r2:c2.r,c2:c2.c});usedCells.add(c1.r*100+c1.c);usedCells.add(c2.r*100+c2.c);
     if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   }
-  render();document.getElementById('msg').textContent='Solution shown.';
+  render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
 }
 
 // ===== INFO & TUTORIAL =====
@@ -258,7 +258,6 @@ function tg(nums,doms,links,R,C){
   const cd={},pt={};
   doms.forEach((d,i)=>{cd[d.r1*100+d.c1]=i;cd[d.r2*100+d.c2]=i;pt[d.r1*100+d.c1]={r:d.r2,c:d.c2};pt[d.r2*100+d.c2]={r:d.r1,c:d.c1}});
   const lset=new Set(links||[]);
-  // Pre-compute which cells are at active links
   const cellColor={};
   for(const lk of lset){
     const[ak,bk]=lk.split('-').map(Number);
@@ -300,9 +299,6 @@ function tg(nums,doms,links,R,C){
 function showTutorial(){
   document.getElementById('msg').textContent='';document.getElementById('msg').dataset.info='';
   const ov=document.getElementById('tutOv');ov.style.display='flex';ov.className='tut-overlay';
-  // Example 2×3: chain [0|1]-[1|2]-[2|0]
-  // Grid:  0 1 1      Dominoes: (0,0)-(0,1)=0|1  (0,2)-(1,2)=1|2  (1,1)-(1,0)=2|0
-  //        0 2 2      Links: (0,1)↔(0,2)=1|1✓  (1,2)↔(1,1)=2|2✓  Trap: (0,0)↔(1,0)=0|0
   const G=[[0,1,1],[0,2,2]];
   const d1=[{r1:0,c1:0,r2:0,c2:1}];
   const d2=[...d1,{r1:0,c1:2,r2:1,c2:2}];
@@ -311,22 +307,18 @@ function showTutorial(){
 
   ov.innerHTML=`<div class="tut-box">
 <h2>📖 How to Play Dominake</h2>
-
 <div class="tut-step">
 <span class="n">1</span> <b>The Grid</b> — Numbers fill a grid. Divide it into domino pairs that form a snake chain.
 <div style="text-align:center;margin-top:8px">${tg(G,[],[],2,3)}</div>
 </div>
-
 <div class="tut-step">
 <span class="n">2</span> <b>Place a domino</b> — Drag from one cell to adjacent. Here: <b>0|1</b> at top-left.
 <div style="text-align:center;margin-top:8px">${tg(G,d1,[],2,3)}</div>
 </div>
-
 <div class="tut-step">
 <span class="n">3</span> <b>Place more</b> — Add <b>1|2</b> on the right and <b>2|0</b> at bottom. Gray marks appear between dominoes.
 <div style="text-align:center;margin-top:8px">${tg(G,d3,[],2,3)}</div>
 </div>
-
 <div class="tut-step">
 <span class="n">4</span> <b>Connect the chain</b> — Click gray marks to activate links. Matching values turn <b style="color:#fbbf24">yellow ✓</b>, mismatches turn <b style="color:#ef4444">red ✗</b>.
 <div style="text-align:center;margin-top:8px">${tg(G,d3,L,2,3)}</div>
@@ -334,18 +326,15 @@ function showTutorial(){
 0|<b style="color:#fbbf24">1</b> — <b style="color:#fbbf24">1</b>|2 ✓ &nbsp;&nbsp; 1|<b style="color:#fbbf24">2</b> — <b style="color:#fbbf24">2</b>|0 ✓ &nbsp;&nbsp; 🎉 Snake!
 </div>
 </div>
-
 <div class="tut-step">
 <span class="n">5</span> <b>Undo</b> — Placed wrong? Press <b>↩ Undo</b> to remove the last domino and its links. Repeat as needed.
 <div style="text-align:center;margin-top:8px">${tg(G,d2,[],2,3)}</div>
 <div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:center">After undoing domino 2|0</div>
 </div>
-
 <div class="tut-step">
 <span class="n">6</span> <b>Win condition</b> — All unique dominoes placed + N−1 matching links = 🎉<br>
 <b>Traps</b> = adjacent cells with same value that aren't part of the solution chain. More traps = harder puzzle!
 </div>
-
 <button class="tut-close on" onclick="document.getElementById('tutOv').style.display='none'">Got it!</button>
 </div>`;
 }
@@ -401,21 +390,25 @@ function animateSnake(){
   line.style.strokeDasharray=len;line.style.setProperty('--len',len);
   line.style.animation=`snakeDraw ${Math.max(1.5,len/300)}s ease-out forwards, snakePulse 2s ease-in-out 2s infinite`;
   svg.appendChild(line);
+  // Helper: place label above or below depending on position
+  function addLabel(x,y,text){
+    const lb=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lb.setAttribute('x',x);lb.setAttribute('text-anchor','middle');
+    lb.classList.add('snake-label');
+    if(y<cs){lb.setAttribute('y',y+20)}else{lb.setAttribute('y',y-12)}
+    lb.textContent=text;svg.appendChild(lb);
+  }
+  // Start dot + label
   const d1=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',6);d1.classList.add('snake-dot');
+  d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',7);d1.classList.add('snake-dot');
   svg.appendChild(d1);
-  const lb1=document.createElementNS('http://www.w3.org/2000/svg','text');
-  lb1.setAttribute('x',pts[0].x);lb1.setAttribute('y',pts[0].y-10);lb1.setAttribute('text-anchor','middle');
-  lb1.classList.add('snake-label');lb1.textContent='START';
-  svg.appendChild(lb1);
+  addLabel(pts[0].x,pts[0].y,'START');
+  // End dot + label
   const ep=pts[pts.length-1];
   const d2=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  d2.setAttribute('cx',ep.x);d2.setAttribute('cy',ep.y);d2.setAttribute('r',6);d2.classList.add('snake-dot');d2.style.fill='var(--ok)';
+  d2.setAttribute('cx',ep.x);d2.setAttribute('cy',ep.y);d2.setAttribute('r',7);d2.classList.add('snake-dot');d2.style.fill='var(--ok)';
   svg.appendChild(d2);
-  const lb2=document.createElementNS('http://www.w3.org/2000/svg','text');
-  lb2.setAttribute('x',ep.x);lb2.setAttribute('y',ep.y+18);lb2.setAttribute('text-anchor','middle');
-  lb2.classList.add('snake-label');lb2.textContent='FINISH';
-  svg.appendChild(lb2);
+  addLabel(ep.x,ep.y,'FINISH');
   document.getElementById('board').appendChild(svg);
 }
 
