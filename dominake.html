@@ -27,7 +27,13 @@ button:hover{border-color:var(--accent)}
 button:active{transform:scale(.95)}
 button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 .sz-label{color:var(--muted);font-size:.65rem;display:block;margin-top:1px}
-#board{display:inline-grid;gap:0;margin:6px auto;user-select:none}
+#board{display:inline-grid;gap:0;margin:6px auto;user-select:none;position:relative}
+#snakeSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:20}
+#snakeSvg .snake-line{fill:none;stroke:var(--match);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--match))}
+#snakeSvg .snake-dot{fill:var(--match);filter:drop-shadow(0 0 3px var(--match))}
+#snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke}
+@keyframes snakeDraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@keyframes snakePulse{0%,100%{opacity:.7}50%{opacity:1}}
 .cell{display:flex;align-items:center;justify-content:center;font-weight:700;border:3px solid var(--border);background:var(--bg2);cursor:pointer;position:relative;transition:background .12s;-webkit-user-drag:none;touch-action:none}
 .cell:hover{background:color-mix(in srgb,var(--bg2) 80%,var(--accent))}
 .cell.first-click{background:color-mix(in srgb,var(--match) 20%,var(--bg2));border-color:var(--match)}
@@ -74,7 +80,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v12.1</span></h1>
+<h1>🐍 Dominake <span class="ver">v12.2</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -344,9 +350,79 @@ function showTutorial(){
 </div>`;
 }
 
+// ===== SNAKE ANIMATION =====
+function animateSnake(){
+  const old=document.getElementById('snakeSvg');if(old)old.remove();
+  const cellDom={};
+  for(let i=0;i<placed.length;i++){const d=placed[i];cellDom[d.r1*100+d.c1]=i;cellDom[d.r2*100+d.c2]=i}
+  const adj=Array.from({length:placed.length},()=>[]);
+  for(const lk of userLinks){
+    const[ak,bk]=lk.split('-').map(Number);
+    const da=cellDom[ak],db=cellDom[bk];
+    if(da!==undefined&&db!==undefined&&da!==db){adj[da].push({to:db,via:[ak,bk]});adj[db].push({to:da,via:[bk,ak]})}
+  }
+  let start=-1;for(let i=0;i<placed.length;i++)if(adj[i].length<=1){start=i;break}
+  if(start<0)start=0;
+  const order=[];const vis=new Set();
+  let cur=start;
+  while(cur!==-1&&!vis.has(cur)){
+    vis.add(cur);order.push(cur);
+    let next=-1;
+    for(const e of adj[cur])if(!vis.has(e.to)){next=e.to;break}
+    cur=next;
+  }
+  if(order.length!==placed.length)return;
+  const cs=cellSize();
+  const pts=[];
+  for(let oi=0;oi<order.length;oi++){
+    const di=order[oi],d=placed[di];
+    const k1=d.r1*100+d.c1,k2=d.r2*100+d.c2;
+    let first=k1,second=k2;
+    if(oi>0){
+      const prev=order[oi-1];
+      for(const e of adj[prev])if(e.to===di){
+        if(e.via[1]===k2){first=k2;second=k1}
+        break;
+      }
+    }
+    const fr=Math.floor(first/100),fc=first%100;
+    const sr=Math.floor(second/100),sc=second%100;
+    pts.push({x:fc*cs+cs/2,y:fr*cs+cs/2});
+    pts.push({x:sc*cs+cs/2,y:sr*cs+cs/2});
+  }
+  const w=COLS*cs,h=ROWS*cs;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.id='snakeSvg';svg.setAttribute('width',w);svg.setAttribute('height',h);
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const pstr=pts.map(p=>p.x+','+p.y).join(' ');
+  const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  line.setAttribute('points',pstr);line.classList.add('snake-line');
+  let len=0;for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;len+=Math.sqrt(dx*dx+dy*dy)}
+  line.style.strokeDasharray=len;line.style.setProperty('--len',len);
+  line.style.animation=`snakeDraw ${Math.max(1.5,len/300)}s ease-out forwards, snakePulse 2s ease-in-out 2s infinite`;
+  svg.appendChild(line);
+  const d1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',6);d1.classList.add('snake-dot');
+  svg.appendChild(d1);
+  const lb1=document.createElementNS('http://www.w3.org/2000/svg','text');
+  lb1.setAttribute('x',pts[0].x);lb1.setAttribute('y',pts[0].y-10);lb1.setAttribute('text-anchor','middle');
+  lb1.classList.add('snake-label');lb1.textContent='START';
+  svg.appendChild(lb1);
+  const ep=pts[pts.length-1];
+  const d2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  d2.setAttribute('cx',ep.x);d2.setAttribute('cy',ep.y);d2.setAttribute('r',6);d2.classList.add('snake-dot');d2.style.fill='var(--ok)';
+  svg.appendChild(d2);
+  const lb2=document.createElementNS('http://www.w3.org/2000/svg','text');
+  lb2.setAttribute('x',ep.x);lb2.setAttribute('y',ep.y+18);lb2.setAttribute('text-anchor','middle');
+  lb2.classList.add('snake-label');lb2.textContent='FINISH';
+  svg.appendChild(lb2);
+  document.getElementById('board').appendChild(svg);
+}
+
 // ===== RENDER =====
 function render(){
   const board=document.getElementById('board');const cs=cellSize();const fs=Math.max(cs*0.3,12);
+  const oldSnake=document.getElementById('snakeSvg');if(oldSnake)oldSnake.remove();
   board.style.gridTemplateColumns=`repeat(${COLS},${cs}px)`;board.innerHTML='';
   const cellDom={};for(let i=0;i<placed.length;i++){const d=placed[i];cellDom[d.r1*100+d.c1]=i;cellDom[d.r2*100+d.c2]=i}
   const partner={};for(const d of placed){partner[d.r1*100+d.c1]={r:d.r2,c:d.c2};partner[d.r2*100+d.c2]={r:d.r1,c:d.c1}}
@@ -404,7 +480,7 @@ function renderInfo(){
   if(placed.length===need&&cT===need-1&&cOk===cT){
     const ds=new Set();let ok=true;
     for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);if(ds.has(k)){ok=false;break}ds.add(k)}
-    if(ok)document.getElementById('msg').textContent='🎉 Solved! You found the domino snake!';
+    if(ok){document.getElementById('msg').textContent='🎉 Solved! You found the domino snake!';animateSnake()}
   }
 }
 
