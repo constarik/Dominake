@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Dominake — Domino Snake Puzzle</title>
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#64748b;
+  --accent:#3b82f6;--placed:#1e3a5f;--match:#fbbf24;--break:#ef4444;
+  --ok:#22c55e;--divider:#4a5568;--mark:#334155;--mark-hover:#64748b;
+}
+.theme-ocean{--bg:#0c1929;--bg2:#132f4c;--border:#1e4976;--placed:#1a3d5c;--accent:#2196f3;--divider:#2a5a8a}
+.theme-forest{--bg:#1a2e1a;--bg2:#2d4a2d;--border:#3d6b3d;--placed:#2a5a2a;--accent:#4caf50;--match:#ffeb3b;--divider:#4a7a4a}
+.theme-sunset{--bg:#2d1b2e;--bg2:#4a2c4d;--border:#6b3d6e;--placed:#5a2a5c;--accent:#e91e63;--match:#ff9800;--divider:#7a4a7c}
+.theme-sand{--bg:#2c2416;--bg2:#3d3424;--border:#5a4d36;--placed:#4a3d2a;--accent:#d4a853;--match:#f0c040;--divider:#6a5d46}
+.theme-light{--bg:#f0f0f0;--bg2:#ffffff;--border:#ccc;--text:#1a1a1a;--muted:#666;--placed:#d0e8ff;--accent:#2563eb;--divider:#aaa;--mark:#999;--mark-hover:#666}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:12px;overflow-x:hidden}
+h1{font-size:1.5rem;margin:6px 0;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ver{font-size:.6rem;color:var(--muted);-webkit-text-fill-color:var(--muted)}
+.subtitle{color:var(--muted);font-size:.8rem;margin-bottom:10px}
+.row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center}
+button{background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.8rem;white-space:nowrap;touch-action:manipulation}
+button:hover{border-color:var(--accent)}
+button:active{transform:scale(.95)}
+button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
+.sz-label{color:var(--muted);font-size:.65rem;display:block;margin-top:1px}
+#board{display:inline-grid;gap:0;margin:6px auto;user-select:none}
+.cell{display:flex;align-items:center;justify-content:center;font-weight:700;border:3px solid var(--border);background:var(--bg2);cursor:pointer;position:relative;transition:background .12s;-webkit-user-drag:none;touch-action:none}
+.cell:hover{background:color-mix(in srgb,var(--bg2) 80%,var(--accent))}
+.cell.first-click{background:color-mix(in srgb,var(--match) 20%,var(--bg2));border-color:var(--match)}
+.cell.placed{background:var(--placed)}
+.cell.placed.nb-r{border-right-color:var(--placed)}.cell.placed.nb-l{border-left-color:var(--placed)}
+.cell.placed.nb-b{border-bottom-color:var(--placed)}.cell.placed.nb-t{border-top-color:var(--placed)}
+.dm{position:absolute;background:var(--mark);border-radius:2px;z-index:10;opacity:.5;transition:all .12s;cursor:pointer}
+.dm:hover{opacity:1;background:var(--mark-hover)}.dm.on{opacity:1}
+.dm.h{width:6px;height:55%;top:22.5%}.dm.v{height:6px;width:55%;left:22.5%}
+.dv{position:absolute;background:var(--divider);border-radius:1px;z-index:1}
+.dv.h{width:2px;height:45%;top:27.5%;right:-4px}.dv.v{height:2px;width:45%;left:27.5%;bottom:-4px}
+.info{color:var(--muted);font-size:.8rem;margin:6px 0;text-align:center;line-height:1.5}
+.legend{display:flex;gap:10px;margin:6px 0;font-size:.7rem;color:var(--muted);flex-wrap:wrap;justify-content:center}
+.legend span{display:flex;align-items:center;gap:3px}
+.legend .d{width:8px;height:8px;border-radius:2px}
+#ref{margin:6px auto;max-width:500px}
+.rt{text-align:center;color:var(--muted);font-size:.75rem;margin-bottom:4px}
+.rg{display:flex;flex-wrap:wrap;gap:2px;justify-content:center}
+.rd{display:flex;align-items:center;gap:1px;padding:1px 5px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);font-size:.65rem;font-weight:600}
+.rd.ok{background:color-mix(in srgb,var(--ok) 15%,var(--bg2));border-color:var(--ok);color:var(--ok)}
+.rd.dup{background:color-mix(in srgb,var(--break) 15%,var(--bg2));border-color:var(--break);color:var(--break)}
+.rdot{width:4px;height:4px;border-radius:50%;background:var(--muted);margin:0 1px}
+#msg{color:var(--match);font-size:.85rem;margin:4px 0;min-height:1.1em;text-align:center}
+#themes{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.th{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);cursor:pointer}
+.th.sel{border-color:var(--text);box-shadow:0 0 6px var(--accent)}
+.tut-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.tut-box{background:var(--bg);border:2px solid var(--border);border-radius:16px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:20px}
+.tut-box h2{font-size:1.1rem;margin-bottom:12px;text-align:center;color:var(--match)}
+.tut-step{margin-bottom:14px;padding:10px;border-radius:8px;background:var(--bg2);font-size:.78rem;line-height:1.5}
+.tut-step b{color:var(--match)}
+.tut-step .n{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;text-align:center;line-height:20px;font-size:.65rem;font-weight:700;margin-right:5px}
+.tg{display:inline-grid;gap:0;margin:8px auto}
+.tg .tc{width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;border:3px solid var(--border);background:var(--bg2);position:relative}
+.tg .tc.pl{background:var(--placed)}
+.tg .tc.nb-r{border-right-color:var(--placed)}.tg .tc.nb-l{border-left-color:var(--placed)}
+.tg .tc.nb-b{border-bottom-color:var(--placed)}.tg .tc.nb-t{border-top-color:var(--placed)}
+.tut-close{display:block;margin:12px auto 0;padding:8px 24px;font-size:.9rem}
+@media(max-width:500px){
+  body{padding:8px}h1{font-size:1.3rem}
+  button{padding:5px 8px;font-size:.75rem}
+  .tg .tc{width:32px;height:32px;font-size:.8rem}
+}
+</style>
+</head>
+<body>
+<h1>🐍 Dominake <span class="ver">v12.1</span></h1>
+<div class="subtitle">Domino Snake Puzzle</div>
+<div id="themes"></div>
+<div class="row">
+  <button class="on" onclick="newGame()">▶ New</button>
+  <button onclick="showSolution()">👁 Solve</button>
+  <button onclick="undoLast()">↩ Undo</button>
+  <button onclick="resetAll()">🗑 Reset</button>
+  <button onclick="showInfo()">ℹ</button>
+</div>
+<div class="row" id="szRow"></div>
+<div class="row" id="diffRow"></div>
+<div class="legend">
+  <span><span class="d" style="background:var(--mark)"></span> Click to link</span>
+  <span><span class="d" style="background:var(--match);border-radius:50%"></span> Match</span>
+  <span><span class="d" style="background:var(--break);border-radius:50%"></span> Break</span>
+</div>
+<div id="msg"></div>
+<div id="board"></div>
+<div id="ref"><div class="rt">Domino Set (no doubles)</div><div class="rg" id="rg"></div></div>
+<div class="info" id="info"></div>
+<div id="tutOv" style="display:none"></div>
+
+<script>
+const SIZES=[
+  {rows:4,cols:5,max:4,label:'4×5',sub:'10 dom',easy:[0,1],norm:[2,3],hard:[4,99]},
+  {rows:6,cols:7,max:6,label:'6×7',sub:'21 dom',easy:[0,1],norm:[2,4],hard:[5,99]},
+  {rows:8,cols:9,max:8,label:'8×9',sub:'36 dom',easy:[0,2],norm:[3,6],hard:[7,99]}
+];
+const DIFFS=[
+  {name:'Easy',key:'easy',emoji:'🟢'},
+  {name:'Normal',key:'norm',emoji:'🟡'},
+  {name:'Hard',key:'hard',emoji:'🔴'}
+];
+const THEMES=[
+  {name:'Default',cls:'',color:'#3b82f6'},
+  {name:'Ocean',cls:'theme-ocean',color:'#2196f3'},
+  {name:'Forest',cls:'theme-forest',color:'#4caf50'},
+  {name:'Sunset',cls:'theme-sunset',color:'#e91e63'},
+  {name:'Sand',cls:'theme-sand',color:'#d4a853'},
+  {name:'Light',cls:'theme-light',color:'#ddd'}
+];
+let curTheme=0,curSize=1,curDiff=0;
+let ROWS,COLS,MAX_NUM,TOTAL;
+let grid,solPath,solChain,rng,lastTraps=0;
+let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null;
+
+function initThemes(){
+  const c=document.getElementById('themes');
+  THEMES.forEach((t,i)=>{const d=document.createElement('div');d.className='th'+(i===curTheme?' sel':'');d.style.background=t.color;d.title=t.name;d.onclick=()=>setTheme(i);c.appendChild(d)});
+}
+function setTheme(i){curTheme=i;document.body.className=THEMES[i].cls;document.querySelectorAll('.th').forEach((d,j)=>d.classList.toggle('sel',j===i))}
+
+function initSizes(){
+  const row=document.getElementById('szRow');
+  SIZES.forEach((s,i)=>{const b=document.createElement('button');b.id='sz'+i;b.className=i===curSize?'on':'';b.innerHTML=s.label+'<span class="sz-label">'+s.sub+'</span>';b.onclick=()=>setSize(i);row.appendChild(b)});
+}
+function setSize(i){curSize=i;applySize();document.querySelectorAll('[id^=sz]').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
+function applySize(){const s=SIZES[curSize];ROWS=s.rows;COLS=s.cols;MAX_NUM=s.max;TOTAL=ROWS*COLS}
+
+function initDiffs(){
+  const row=document.getElementById('diffRow');
+  DIFFS.forEach((d,i)=>{const b=document.createElement('button');b.id='df'+i;b.className=i===curDiff?'on':'';b.textContent=d.emoji+' '+d.name;b.onclick=()=>setDiff(i);row.appendChild(b)});
+}
+function setDiff(i){curDiff=i;document.querySelectorAll('[id^=df]').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
+
+function cellSize(){const maxW=Math.min(window.innerWidth-24,500);return Math.max(28,Math.min(Math.floor(maxW/COLS),52))}
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function isAdj(r1,c1,r2,c2){return Math.abs(r1-r2)+Math.abs(c1-c2)===1}
+
+function genPath(rows,cols,rng){
+  const vis=Array.from({length:rows},()=>Array(cols).fill(false));
+  const path=[],total=rows*cols;const sr=Math.floor(rng()*rows),sc=Math.floor(rng()*cols);let it=0;
+  function nb(r,c){const n=[];if(r>0&&!vis[r-1][c])n.push([r-1,c]);if(r<rows-1&&!vis[r+1][c])n.push([r+1,c]);if(c>0&&!vis[r][c-1])n.push([r,c-1]);if(c<cols-1&&!vis[r][c+1])n.push([r,c+1]);return n}
+  function solve(r,c){if(++it>300000)return false;vis[r][c]=true;path.push({r,c});if(path.length===total)return true;const nn=nb(r,c);nn.sort((a,b)=>nb(a[0],a[1]).length-nb(b[0],b[1]).length||(rng()-.5));for(const[nr,nc]of nn)if(solve(nr,nc))return true;vis[r][c]=false;path.pop();return false}
+  return solve(sr,sc)?path:null;
+}
+function genChain(path,maxNum,rng){
+  const doms=[];for(let a=0;a<=maxNum;a++)for(let b=a+1;b<=maxNum;b++)doms.push([a,b]);
+  shuffle(doms,rng);const numDom=path.length/2;const used=Array(doms.length).fill(false);const chain=[];let it=0;
+  function solve(pos,lastVal){if(++it>100000)return false;if(pos===numDom)return true;for(let i=0;i<doms.length;i++){if(used[i])continue;const[a,b]=doms[i];if(pos===0){used[i]=true;chain.push({a,b});if(solve(1,b))return true;chain.pop();chain.push({a:b,b:a});if(solve(1,a))return true;chain.pop();used[i]=false}else{if(a===lastVal){used[i]=true;chain.push({a,b});if(solve(pos+1,b))return true;chain.pop();used[i]=false}if(b===lastVal){used[i]=true;chain.push({a:b,b:a});if(solve(pos+1,a))return true;chain.pop();used[i]=false}}}return false}
+  return solve(0,null)?chain:null;
+}
+
+function countTraps(grid,path,chain,rows,cols){
+  const solLinks=new Set();
+  for(let d=0;d<chain.length-1;d++){const e=path[d*2+1],s=path[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;solLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
+  const cellDom={};
+  for(let d=0;d<chain.length;d++){cellDom[path[d*2].r*100+path[d*2].c]=d;cellDom[path[d*2+1].r*100+path[d*2+1].c]=d}
+  let traps=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const ck=r*100+c;
+    for(const[dr,dc]of[[0,1],[1,0]]){const nr=r+dr,nc=c+dc;if(nr>=rows||nc>=cols)continue;const nk=nr*100+nc;if(cellDom[ck]===cellDom[nk])continue;const lk=Math.min(ck,nk)+'-'+Math.max(ck,nk);if(solLinks.has(lk))continue;if(grid[r][c]===grid[nr][nc])traps++}
+  }
+  return traps;
+}
+
+function generate(){
+  const sz=SIZES[curSize];const range=sz[DIFFS[curDiff].key];
+  for(let att=0;att<500;att++){
+    rng=mulberry32(Date.now()+att*7);
+    const path=genPath(ROWS,COLS,rng);if(!path)continue;
+    const chain=genChain(path,MAX_NUM,rng);if(!chain)continue;
+    const g=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+    for(let d=0;d<chain.length;d++){g[path[d*2].r][path[d*2].c]=chain[d].a;g[path[d*2+1].r][path[d*2+1].c]=chain[d].b}
+    let ok=true;
+    for(let i=0;i<path.length-1;i++)if(!isAdj(path[i].r,path[i].c,path[i+1].r,path[i+1].c)){ok=false;break}
+    for(let i=0;i<chain.length-1&&ok;i++)if(chain[i].b!==chain[i+1].a)ok=false;
+    if(!ok)continue;
+    const traps=countTraps(g,path,chain,ROWS,COLS);
+    if(traps<range[0]||traps>range[1])continue;
+    grid=g;solPath=path;solChain=chain;lastTraps=traps;return true;
+  }
+  return false;
+}
+
+// ===== GAMEPLAY =====
+function newGame(){
+  if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
+  placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
+  document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+' ('+lastTraps+' traps)';
+  render();
+}
+function onCellDown(r,c){if(usedCells.has(r*100+c))return;dragStart={r,c};firstClick={r,c};render()}
+function onCellUp(r,c){
+  if(!dragStart)return;if(dragStart.r===r&&dragStart.c===c){dragStart=null;return}
+  const ck=r*100+c;if(usedCells.has(ck)||!isAdj(dragStart.r,dragStart.c,r,c)){dragStart=null;return}
+  placed.push({r1:dragStart.r,c1:dragStart.c,r2:r,c2:c});usedCells.add(dragStart.r*100+dragStart.c);usedCells.add(ck);
+  firstClick=null;dragStart=null;document.getElementById('msg').textContent='';render();
+}
+function onCellClick(r,c){
+  if(!dragStart&&firstClick){const ck=r*100+c;
+    if(firstClick.r===r&&firstClick.c===c){firstClick=null;render();return}
+    if(usedCells.has(ck)||!isAdj(firstClick.r,firstClick.c,r,c))return;
+    placed.push({r1:firstClick.r,c1:firstClick.c,r2:r,c2:c});usedCells.add(firstClick.r*100+firstClick.c);usedCells.add(ck);
+    firstClick=null;document.getElementById('msg').textContent='';render();
+  }
+}
+function undoLast(){
+  if(!placed.length)return;const d=placed.pop();const k1=d.r1*100+d.c1,k2=d.r2*100+d.c2;
+  usedCells.delete(k1);usedCells.delete(k2);
+  for(const l of[...userLinks]){const[a,b]=l.split('-').map(Number);if(a===k1||a===k2||b===k1||b===k2)userLinks.delete(l)}
+  firstClick=null;render();
+}
+function resetAll(){placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();document.getElementById('msg').textContent='Reset.';render()}
+function showSolution(){
+  if(!solChain)return;placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
+  for(let d=0;d<solChain.length;d++){
+    const c1=solPath[d*2],c2=solPath[d*2+1];
+    placed.push({r1:c1.r,c1:c1.c,r2:c2.r,c2:c2.c});usedCells.add(c1.r*100+c1.c);usedCells.add(c2.r*100+c2.c);
+    if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
+  }
+  render();document.getElementById('msg').textContent='Solution shown.';
+}
+
+// ===== INFO & TUTORIAL =====
+function showInfo(){
+  const m=document.getElementById('msg');
+  if(m.dataset.info==='1'){m.textContent='';m.dataset.info='';return}
+  m.dataset.info='1';
+  m.innerHTML='<div style="text-align:left;font-size:.75rem;line-height:1.5;max-width:380px;margin:0 auto">'+
+    '<b>Dominake Rules</b><br>'+
+    '• Drag/tap two adjacent cells → place a domino<br>'+
+    '• Click gray marks between dominoes → toggle chain link<br>'+
+    '• Yellow = values match ✓ &nbsp; Red = mismatch ✗<br>'+
+    '• Goal: all unique dominoes (no doubles), linked into one snake<br>'+
+    '• Need N−1 matching links for N dominoes<br>'+
+    '• Traps = false matches that mislead you<br><br>'+
+    '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Tutorial</button><br>'+
+    '<span style="color:var(--muted)">Click ℹ again to close</span></div>';
+}
+
+function tg(nums,doms,links,R,C){
+  const cd={},pt={};
+  doms.forEach((d,i)=>{cd[d.r1*100+d.c1]=i;cd[d.r2*100+d.c2]=i;pt[d.r1*100+d.c1]={r:d.r2,c:d.c2};pt[d.r2*100+d.c2]={r:d.r1,c:d.c1}});
+  const lset=new Set(links||[]);
+  // Pre-compute which cells are at active links
+  const cellColor={};
+  for(const lk of lset){
+    const[ak,bk]=lk.split('-').map(Number);
+    const ar=Math.floor(ak/100),ac=ak%100,br=Math.floor(bk/100),bc=bk%100;
+    const match=nums[ar][ac]===nums[br][bc];
+    cellColor[ak]=match?'#fbbf24':'#ef4444';
+    cellColor[bk]=match?'#fbbf24':'#ef4444';
+  }
+  let h=`<div class="tg" style="grid-template-columns:repeat(${C},38px)">`;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const ck=r*100+c,pl=ck in cd;
+    let cls='tc'+(pl?' pl':'');
+    const p=pt[ck];
+    if(p){if(p.c===c+1)cls+=' nb-r';if(p.c===c-1)cls+=' nb-l';if(p.r===r+1)cls+=' nb-b';if(p.r===r-1)cls+=' nb-t'}
+    let ex='',sty=cellColor[ck]?'color:'+cellColor[ck]:'';
+    if(pl&&p&&(p.c===c+1||p.r===r+1)){
+      if(p.c===c+1)ex+=`<div style="position:absolute;background:var(--divider);width:2px;height:45%;top:27.5%;right:-4px;border-radius:1px"></div>`;
+      else ex+=`<div style="position:absolute;background:var(--divider);height:2px;width:45%;left:27.5%;bottom:-4px;border-radius:1px"></div>`;
+    }
+    if(pl){
+      const my=cd[ck];
+      for(const[dr,dc]of[[0,1],[1,0]]){
+        const nr=r+dr,nc=c+dc;if(nr<0||nr>=R||nc<0||nc>=C)continue;
+        const nk=nr*100+nc;if(!(nk in cd)||cd[nk]===my)continue;
+        const lk=Math.min(ck,nk)+'-'+Math.max(ck,nk);
+        const isLink=lset.has(lk);
+        const match=nums[r][c]===nums[nr][nc];
+        const bg=isLink?(match?'#fbbf24':'#ef4444'):'var(--mark)';
+        const op=isLink?'1':'.5';
+        if(dr===0)ex+=`<div style="position:absolute;background:${bg};opacity:${op};width:6px;height:55%;top:22.5%;right:-6px;border-radius:2px;z-index:2"></div>`;
+        else ex+=`<div style="position:absolute;background:${bg};opacity:${op};height:6px;width:55%;left:22.5%;bottom:-6px;border-radius:2px;z-index:2"></div>`;
+      }
+    }
+    h+=`<div class="${cls}" style="${sty}">${nums[r][c]}${ex}</div>`;
+  }
+  return h+'</div>';
+}
+
+function showTutorial(){
+  document.getElementById('msg').textContent='';document.getElementById('msg').dataset.info='';
+  const ov=document.getElementById('tutOv');ov.style.display='flex';ov.className='tut-overlay';
+  // Example 2×3: chain [0|1]-[1|2]-[2|0]
+  // Grid:  0 1 1      Dominoes: (0,0)-(0,1)=0|1  (0,2)-(1,2)=1|2  (1,1)-(1,0)=2|0
+  //        0 2 2      Links: (0,1)↔(0,2)=1|1✓  (1,2)↔(1,1)=2|2✓  Trap: (0,0)↔(1,0)=0|0
+  const G=[[0,1,1],[0,2,2]];
+  const d1=[{r1:0,c1:0,r2:0,c2:1}];
+  const d2=[...d1,{r1:0,c1:2,r2:1,c2:2}];
+  const d3=[...d2,{r1:1,c1:1,r2:1,c2:0}];
+  const L=['1-2','101-102'];
+
+  ov.innerHTML=`<div class="tut-box">
+<h2>📖 How to Play Dominake</h2>
+
+<div class="tut-step">
+<span class="n">1</span> <b>The Grid</b> — Numbers fill a grid. Divide it into domino pairs that form a snake chain.
+<div style="text-align:center;margin-top:8px">${tg(G,[],[],2,3)}</div>
+</div>
+
+<div class="tut-step">
+<span class="n">2</span> <b>Place a domino</b> — Drag from one cell to adjacent. Here: <b>0|1</b> at top-left.
+<div style="text-align:center;margin-top:8px">${tg(G,d1,[],2,3)}</div>
+</div>
+
+<div class="tut-step">
+<span class="n">3</span> <b>Place more</b> — Add <b>1|2</b> on the right and <b>2|0</b> at bottom. Gray marks appear between dominoes.
+<div style="text-align:center;margin-top:8px">${tg(G,d3,[],2,3)}</div>
+</div>
+
+<div class="tut-step">
+<span class="n">4</span> <b>Connect the chain</b> — Click gray marks to activate links. Matching values turn <b style="color:#fbbf24">yellow ✓</b>, mismatches turn <b style="color:#ef4444">red ✗</b>.
+<div style="text-align:center;margin-top:8px">${tg(G,d3,L,2,3)}</div>
+<div style="font-size:.7rem;color:var(--muted);margin-top:6px;text-align:center">
+0|<b style="color:#fbbf24">1</b> — <b style="color:#fbbf24">1</b>|2 ✓ &nbsp;&nbsp; 1|<b style="color:#fbbf24">2</b> — <b style="color:#fbbf24">2</b>|0 ✓ &nbsp;&nbsp; 🎉 Snake!
+</div>
+</div>
+
+<div class="tut-step">
+<span class="n">5</span> <b>Undo</b> — Placed wrong? Press <b>↩ Undo</b> to remove the last domino and its links. Repeat as needed.
+<div style="text-align:center;margin-top:8px">${tg(G,d2,[],2,3)}</div>
+<div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:center">After undoing domino 2|0</div>
+</div>
+
+<div class="tut-step">
+<span class="n">6</span> <b>Win condition</b> — All unique dominoes placed + N−1 matching links = 🎉<br>
+<b>Traps</b> = adjacent cells with same value that aren't part of the solution chain. More traps = harder puzzle!
+</div>
+
+<button class="tut-close on" onclick="document.getElementById('tutOv').style.display='none'">Got it!</button>
+</div>`;
+}
+
+// ===== RENDER =====
+function render(){
+  const board=document.getElementById('board');const cs=cellSize();const fs=Math.max(cs*0.3,12);
+  board.style.gridTemplateColumns=`repeat(${COLS},${cs}px)`;board.innerHTML='';
+  const cellDom={};for(let i=0;i<placed.length;i++){const d=placed[i];cellDom[d.r1*100+d.c1]=i;cellDom[d.r2*100+d.c2]=i}
+  const partner={};for(const d of placed){partner[d.r1*100+d.c1]={r:d.r2,c:d.c2};partner[d.r2*100+d.c2]={r:d.r1,c:d.c1}}
+  const cc={};
+  for(const d of placed)if(grid[d.r1][d.c1]===grid[d.r2][d.c2]){cc[d.r1*100+d.c1]='break';cc[d.r2*100+d.c2]='break'}
+  for(const link of userLinks){const[ak,bk]=link.split('-').map(Number);const ar=Math.floor(ak/100),ac=ak%100,br=Math.floor(bk/100),bc=bk%100;const m=grid[ar][ac]===grid[br][bc];cc[ak]=m?'match':'break';cc[bk]=m?'match':'break'}
+
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const cell=document.createElement('div');cell.className='cell';cell.style.width=cell.style.height=cs+'px';cell.style.fontSize=fs+'px';
+    cell.textContent=grid?grid[r][c]:'';const ck=r*100+c;
+    if(firstClick&&firstClick.r===r&&firstClick.c===c)cell.classList.add('first-click');
+    if(usedCells.has(ck)){
+      cell.classList.add('placed');const p=partner[ck];
+      if(p){if(p.c===c+1)cell.classList.add('nb-r');if(p.c===c-1)cell.classList.add('nb-l');if(p.r===r+1)cell.classList.add('nb-b');if(p.r===r-1)cell.classList.add('nb-t');
+        if(p.c===c+1||p.r===r+1){const dv=document.createElement('div');dv.className='dv';dv.classList.add(p.c===c+1?'h':'v');cell.appendChild(dv)}}
+      const myD=cellDom[ck];
+      for(const[dr,dc]of[[0,1],[0,-1],[1,0],[-1,0]]){
+        const nr=r+dr,nc=c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS)continue;const nk=nr*100+nc;
+        if(nk in cellDom&&cellDom[nk]!==myD&&ck<nk){
+          const lk=Math.min(ck,nk)+'-'+Math.max(ck,nk);const on=userLinks.has(lk);
+          const mk=document.createElement('div');mk.className='dm'+(on?' on':'');
+          if(on)mk.style.background=grid[r][c]===grid[nr][nc]?'var(--match)':'var(--break)';
+          if(dr===0){mk.classList.add('h');if(dc>0)mk.style.right='-6px';else mk.style.left='-6px'}
+          else{mk.classList.add('v');if(dr>0)mk.style.bottom='-6px';else mk.style.top='-6px'}
+          ((k)=>{mk.addEventListener('click',e=>{e.stopPropagation();if(userLinks.has(k))userLinks.delete(k);else userLinks.add(k);render()})})(lk);
+          cell.appendChild(mk);
+        }
+      }
+    }
+    if(ck in cc)cell.style.color=cc[ck]==='match'?'var(--match)':'var(--break)';
+    cell.addEventListener('mousedown',e=>{e.preventDefault();onCellDown(r,c)});
+    cell.addEventListener('mouseup',()=>onCellUp(r,c));
+    cell.addEventListener('click',()=>onCellClick(r,c));
+    cell.addEventListener('touchstart',e=>{e.preventDefault();onCellDown(r,c)},{passive:false});
+    cell.addEventListener('touchend',e=>{const t=e.changedTouches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el.dataset.r!==undefined)onCellUp(+el.dataset.r,+el.dataset.c)});
+    cell.dataset.r=r;cell.dataset.c=c;board.appendChild(cell);
+  }
+  renderInfo();
+}
+
+function renderInfo(){
+  const rg=document.getElementById('rg');rg.innerHTML='';const dc={};
+  for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);dc[k]=(dc[k]||0)+1}
+  for(let a=0;a<=MAX_NUM;a++)for(let b=a+1;b<=MAX_NUM;b++){
+    const d=document.createElement('div');d.className='rd';const k=a*100+b;
+    if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
+    d.innerHTML=a+'<span class="rdot"></span>'+b;rg.appendChild(d);
+  }
+  let cOk=0;const cT=userLinks.size;
+  for(const l of userLinks){const[a,b]=l.split('-').map(Number);if(grid[Math.floor(a/100)][a%100]===grid[Math.floor(b/100)][b%100])cOk++}
+  const need=TOTAL/2;
+  let t='Dominoes: '+placed.length+'/'+need+' | Traps: '+lastTraps;
+  if(cT>0)t+=' | Chain: '+cOk+'/'+cT+(cOk===cT?' ✅':' ❌');
+  document.getElementById('info').textContent=t;
+  if(placed.length===need&&cT===need-1&&cOk===cT){
+    const ds=new Set();let ok=true;
+    for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);if(ds.has(k)){ok=false;break}ds.add(k)}
+    if(ok)document.getElementById('msg').textContent='🎉 Solved! You found the domino snake!';
+  }
+}
+
+window.addEventListener('load',()=>{
+  initThemes();initSizes();initDiffs();applySize();
+  document.getElementById('board').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">Press ▶ New to start</div>';
+});
+window.addEventListener('resize',()=>{if(grid)render()});
+</script>
+</body>
+</html>
