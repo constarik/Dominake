@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Dominake — Domino Snake Puzzle</title>
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#64748b;
+  --accent:#3b82f6;--placed:#1e3a5f;--match:#fbbf24;--break:#ef4444;
+  --ok:#22c55e;--divider:#4a5568;--mark:#334155;--mark-hover:#64748b;
+}
+.theme-ocean{--bg:#0c1929;--bg2:#132f4c;--border:#1e4976;--placed:#1a3d5c;--accent:#2196f3;--divider:#2a5a8a}
+.theme-forest{--bg:#1a2e1a;--bg2:#2d4a2d;--border:#3d6b3d;--placed:#2a5a2a;--accent:#4caf50;--match:#ffeb3b;--divider:#4a7a4a}
+.theme-sunset{--bg:#2d1b2e;--bg2:#4a2c4d;--border:#6b3d6e;--placed:#5a2a5c;--accent:#e91e63;--match:#ff9800;--divider:#7a4a7c}
+.theme-sand{--bg:#2c2416;--bg2:#3d3424;--border:#5a4d36;--placed:#4a3d2a;--accent:#d4a853;--match:#f0c040;--divider:#6a5d46}
+.theme-light{--bg:#f0f0f0;--bg2:#ffffff;--border:#ccc;--text:#1a1a1a;--muted:#666;--placed:#d0e8ff;--accent:#2563eb;--divider:#aaa;--mark:#999;--mark-hover:#666}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:12px;overflow-x:hidden}
+h1{font-size:1.5rem;margin:6px 0;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ver{font-size:.6rem;color:var(--muted);-webkit-text-fill-color:var(--muted)}
+.subtitle{color:var(--muted);font-size:.8rem;margin-bottom:10px}
+.row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center}
+button{background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:.8rem;white-space:nowrap;touch-action:manipulation}
+button:hover{border-color:var(--accent)}
+button:active{transform:scale(.95)}
+button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
+.sz-label{color:var(--muted);font-size:.65rem;display:block;margin-top:1px}
+#board{display:inline-grid;gap:0;margin:6px auto;user-select:none;position:relative}
+#snakeSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:20}
+#snakeSvg .snake-line{fill:none;stroke:var(--match);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--match))}
+#snakeSvg .snake-dot{fill:var(--match);filter:drop-shadow(0 0 3px var(--match))}
+#snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke}
+#hlSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:15}
+#hlSvg .hl-f{stroke:var(--ok);fill:var(--ok);opacity:.7}
+#hlSvg .hl-h{stroke:var(--accent);fill:var(--accent);opacity:.55;stroke-dasharray:6 3}
+#hlSvg .hl-b{stroke:var(--break);fill:var(--break);opacity:.4;stroke-dasharray:3 3}
+#hlSvg line{stroke-width:2.5;stroke-linecap:round}
+#hlSvg circle{r:5}
+.cell.hl-free{box-shadow:inset 0 0 0 2px var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--bg2))}
+.cell.hl-half{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg2))}
+.cell.hl-blocked{box-shadow:inset 0 0 0 2px var(--break);background:color-mix(in srgb,var(--break) 8%,var(--bg2))}
+@keyframes snakeDraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
+@keyframes snakePulse{0%,100%{opacity:.7}50%{opacity:1}}
+.cell{display:flex;align-items:center;justify-content:center;font-weight:700;border:3px solid var(--border);background:var(--bg2);cursor:pointer;position:relative;transition:background .12s;-webkit-user-drag:none;touch-action:none}
+.cell:hover{background:color-mix(in srgb,var(--bg2) 80%,var(--accent))}
+.cell.first-click{background:color-mix(in srgb,var(--match) 20%,var(--bg2));border-color:var(--match)}
+.cell.placed{background:var(--placed)}
+.cell.placed.nb-r{border-right-color:var(--placed)}.cell.placed.nb-l{border-left-color:var(--placed)}
+.cell.placed.nb-b{border-bottom-color:var(--placed)}.cell.placed.nb-t{border-top-color:var(--placed)}
+.dm{position:absolute;background:var(--mark);border-radius:2px;z-index:10;opacity:.5;transition:all .12s;cursor:pointer}
+.dm:hover{opacity:1;background:var(--mark-hover)}.dm.on{opacity:1}
+.dm.h{width:6px;height:55%;top:22.5%}.dm.v{height:6px;width:55%;left:22.5%}
+.dv{position:absolute;background:var(--divider);border-radius:1px;z-index:1}
+.dv.h{width:2px;height:45%;top:27.5%;right:-4px}.dv.v{height:2px;width:45%;left:27.5%;bottom:-4px}
+.info{color:var(--muted);font-size:.8rem;margin:6px 0;text-align:center;line-height:1.5}
+.legend{display:flex;gap:10px;margin:6px 0;font-size:.7rem;color:var(--muted);flex-wrap:wrap;justify-content:center}
+.legend span{display:flex;align-items:center;gap:3px}
+.legend .d{width:8px;height:8px;border-radius:2px}
+#ref{margin:6px auto;max-width:500px}
+.rt{text-align:center;color:var(--muted);font-size:.75rem;margin-bottom:4px}
+.rg{display:flex;flex-wrap:wrap;gap:2px;justify-content:center}
+.rd{display:flex;align-items:center;gap:1px;padding:1px 5px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);font-size:.65rem;font-weight:600;cursor:pointer}
+.rd.ok{background:color-mix(in srgb,var(--ok) 15%,var(--bg2));border-color:var(--ok);color:var(--ok)}
+.rd.dup{background:color-mix(in srgb,var(--break) 15%,var(--bg2));border-color:var(--break);color:var(--break)}
+.rd.hl{background:color-mix(in srgb,var(--accent) 30%,var(--bg2));border-color:var(--accent);color:var(--accent);box-shadow:0 0 4px var(--accent)}
+.rdot{width:4px;height:4px;border-radius:50%;background:var(--muted);margin:0 1px}
+#msg{color:var(--match);font-size:.85rem;margin:4px 0;min-height:1.1em;text-align:center}
+#themes{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.th{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);cursor:pointer}
+.th.sel{border-color:var(--text);box-shadow:0 0 6px var(--accent)}
+.tut-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.tut-box{background:var(--bg);border:2px solid var(--border);border-radius:16px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:20px}
+.tut-box h2{font-size:1.1rem;margin-bottom:12px;text-align:center;color:var(--match)}
+.tut-step{margin-bottom:14px;padding:10px;border-radius:8px;background:var(--bg2);font-size:.78rem;line-height:1.5}
+.tut-step b{color:var(--match)}
+.tut-step .n{display:inline-block;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;text-align:center;line-height:20px;font-size:.65rem;font-weight:700;margin-right:5px}
+.tg{display:inline-grid;gap:0;margin:8px auto}
+.tg .tc{width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;border:3px solid var(--border);background:var(--bg2);position:relative}
+.tg .tc.pl{background:var(--placed)}
+.tg .tc.nb-r{border-right-color:var(--placed)}.tg .tc.nb-l{border-left-color:var(--placed)}
+.tg .tc.nb-b{border-bottom-color:var(--placed)}.tg .tc.nb-t{border-top-color:var(--placed)}
+.tut-close{display:block;margin:12px auto 0;padding:8px 24px;font-size:.9rem}
+@media(max-width:500px){
+  body{padding:8px}h1{font-size:1.3rem}
+  button{padding:5px 8px;font-size:.75rem}
+  .tg .tc{width:32px;height:32px;font-size:.8rem}
+}
+</style>
+</head>
+<body>
+<h1>🐍 Dominake <span class="ver">v14.0</span></h1>
+<div class="subtitle">Domino Snake Puzzle</div>
+<div id="themes"></div>
+<div class="row">
+  <button class="on" onclick="newGame()">▶ New</button>
+  <button onclick="showSolution()">👁 Solve</button>
+  <button onclick="undoLast()">↩ Undo</button>
+  <button onclick="resetAll()">🗑 Reset</button>
+  <button id="loopBtn" onclick="toggleLoop()">🔗 Chain</button>
+  <button onclick="showInfo()">ℹ</button>
+</div>
+<div class="row" id="szRow"></div>
+<div class="row" id="diffRow"></div>
+<div class="legend">
+  <span><span class="d" style="background:var(--mark)"></span> Click to link</span>
+  <span><span class="d" style="background:var(--match);border-radius:50%"></span> Match</span>
+  <span><span class="d" style="background:var(--break);border-radius:50%"></span> Break</span>
+</div>
+<div id="msg"></div>
+<div id="board"></div>
+<div id="ref"><div class="rt">Domino Set (no doubles)</div><div class="rg" id="rg"></div></div>
+<div class="info" id="info"></div>
+<div id="tutOv" style="display:none"></div>
+
+<script>
+// [Same JS as in /home/claude/dominake.html - full game logic]
+</script>
+</body>
+</html>

@@ -90,7 +90,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v13.9</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.0</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -257,17 +257,39 @@ function showInfo(){
   const m=document.getElementById('msg');
   if(m.dataset.info==='1'){m.textContent='';m.dataset.info='';return}
   m.dataset.info='1';
-  m.innerHTML='<div style="text-align:left;font-size:.75rem;line-height:1.5;max-width:380px;margin:0 auto">'+
-    '<b>Dominake Rules</b><br>'+
-    '• Drag/tap two adjacent cells → place a domino<br>'+
-    '• Click gray marks between dominoes → toggle chain link<br>'+
-    '• Yellow = values match ✓ &nbsp; Red = mismatch ✗<br>'+
-    '• Goal: all unique dominoes (no doubles), linked into one snake<br>'+
-    '• Need N−1 matching links for N dominoes<br>'+
-    '• Traps = false matches that mislead you<br>'+
-    '• Hold a domino in the set below to see possible positions<br><br>'+
-    '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Tutorial</button><br>'+
-    '<span style="color:var(--muted)">Click ℹ again to close</span></div>';
+  m.innerHTML='<div style="text-align:left;font-size:.75rem;line-height:1.6;max-width:400px;margin:0 auto;padding:4px">'+
+    '<div style="text-align:center;margin-bottom:10px">'+
+    '<b style="font-size:.9rem;color:var(--match)">🐍 Dominake</b><br>'+
+    '<span style="color:var(--muted);font-size:.65rem">Domino + Snake = a unique constraint puzzle</span></div>'+
+    '<b style="color:var(--accent)">🎯 Goal</b><br>'+
+    'Divide the grid into domino pairs and link them into a continuous snake chain where each connection matches.<br><br>'+
+    '<b style="color:var(--accent)">🎮 How to Play</b><br>'+
+    '‣ Drag or tap two adjacent cells → place a domino<br>'+
+    '‣ Click gray marks between dominoes → toggle chain link<br>'+
+    '‣ <span style="color:var(--match)">Yellow</span> = values match ✓ &nbsp; <span style="color:var(--break)">Red</span> = mismatch ✗<br>'+
+    '‣ Chain mode: N−1 matching links &nbsp;|&nbsp; Loop mode: N links<br><br>'+
+    '<b style="color:var(--accent)">🔍 Domino Preview</b><br>'+
+    'Hold any domino in the set below to highlight all matching positions:<br>'+
+    '‣ <span style="color:var(--ok)">●</span> Green = both cells free, ready to place<br>'+
+    '‣ <span style="color:var(--accent)">●</span> Blue = one cell already occupied<br>'+
+    '‣ <span style="color:var(--break)">●</span> Red = both cells occupied<br><br>'+
+    '<b style="color:var(--accent)">⚙️ Features</b><br>'+
+    '‣ 3 grid sizes: 4×5 · 6×7 · 8×9<br>'+
+    '‣ 3 difficulty levels (trap-based)<br>'+
+    '‣ 🔗 Chain / 🔄 Loop modes<br>'+
+    '‣ 6 color themes · Snake animation on solve<br>'+
+    '‣ Undo & Reset anytime<br><br>'+
+    '<b style="color:var(--accent)">🧠 The Math</b><br>'+
+    'Domino chain = Eulerian path in K<sub>n</sub>. Grid path = Hamiltonian path. '+
+    '5×6 is <i>mathematically impossible</i> — K₆ has all vertices odd, violating the Euler condition.<br><br>'+
+    '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Interactive Tutorial</button><br>'+
+    '<div style="text-align:center;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'+
+    '<a href="https://uncloned-math.netlify.app" target="_blank" rel="noopener" '+
+    'style="color:var(--muted);text-decoration:none;font-size:.7rem;letter-spacing:.5px;transition:color .2s" '+
+    'onmouseover="this.style.color=getComputedStyle(document.documentElement).getPropertyValue(\'--accent\')" '+
+    'onmouseout="this.style.color=getComputedStyle(document.documentElement).getPropertyValue(\'--muted\')">'+
+    '🎲 <b>Uncloned Math</b> — original game mechanics<br>by Constantine Razinsky</a><br>'+
+    '<span style="color:var(--muted);font-size:.55rem;opacity:.6">Click ℹ to close</span></div></div>';
 }
 
 function tg(nums,doms,links,R,C){
