@@ -80,7 +80,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v13.2</span></h1>
+<h1>🐍 Dominake <span class="ver">v13.4</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -355,13 +355,9 @@ function animateSnake(){
     const da=cellDom[ak],db=cellDom[bk];
     if(da!==undefined&&db!==undefined&&da!==db&&!adj[da].some(e=>e.to===db)){adj[da].push({to:db,via:[ak,bk]});adj[db].push({to:da,via:[bk,ak]})}
   }
-  // Find endpoint (domino with <=1 link) or any for loop
   let order=null;
-  // Try each domino as start until walk covers all
   for(let s=0;s<placed.length;s++){
-    const tryStart=loopMode?s:(adj[s].length<=1?s:-1);
-    if(tryStart<0)continue;
-    const o=[];const vis=new Set();let cur=tryStart;
+    const o=[];const vis=new Set();let cur=s;
     while(cur!==-1&&!vis.has(cur)){
       vis.add(cur);o.push(cur);
       let next=-1;
@@ -369,10 +365,16 @@ function animateSnake(){
       cur=next;
     }
     if(o.length===placed.length){order=o;break}
-    if(!loopMode)break; // chain mode: only one valid start
   }
-  if(!order)return;
-  // Determine cell order within each domino (entry side)
+  if(!order){
+    if(!solPath)return;
+    const cs=cellSize();
+    const pts=[];
+    for(const p of solPath)pts.push({x:p.c*cs+cs/2,y:p.r*cs+cs/2});
+    if(loopMode)pts.push({x:pts[0].x,y:pts[0].y});
+    drawSnakeSvg(pts);
+    return;
+  }
   const cs=cellSize();
   const pts=[];
   for(let oi=0;oi<order.length;oi++){
@@ -391,12 +393,16 @@ function animateSnake(){
     pts.push({x:fc*cs+cs/2,y:fr*cs+cs/2});
     pts.push({x:sc*cs+cs/2,y:sr*cs+cs/2});
   }
+  if(loopMode)pts.push({x:pts[0].x,y:pts[0].y});
+  drawSnakeSvg(pts);
+}
+
+function drawSnakeSvg(pts){
+  const cs=cellSize();
   const w=COLS*cs,h=ROWS*cs;
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.id='snakeSvg';svg.setAttribute('width',w);svg.setAttribute('height',h);
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
-  // In loop mode, close the path back to start
-  if(loopMode)pts.push({x:pts[0].x,y:pts[0].y});
   const pstr=pts.map(p=>p.x+','+p.y).join(' ');
   const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');
   line.setAttribute('points',pstr);line.classList.add('snake-line');
