@@ -80,7 +80,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v12.4</span></h1>
+<h1>🐍 Dominake <span class="ver">v13.2</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -88,6 +88,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
   <button onclick="showSolution()">👁 Solve</button>
   <button onclick="undoLast()">↩ Undo</button>
   <button onclick="resetAll()">🗑 Reset</button>
+  <button id="loopBtn" onclick="toggleLoop()">🔗 Chain</button>
   <button onclick="showInfo()">ℹ</button>
 </div>
 <div class="row" id="szRow"></div>
@@ -125,7 +126,7 @@ const THEMES=[
 let curTheme=0,curSize=1,curDiff=0;
 let ROWS,COLS,MAX_NUM,TOTAL;
 let grid,solPath,solChain,rng,lastTraps=0;
-let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null;
+let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false;
 
 function initThemes(){
   const c=document.getElementById('themes');
@@ -145,6 +146,7 @@ function initDiffs(){
   DIFFS.forEach((d,i)=>{const b=document.createElement('button');b.id='df'+i;b.className=i===curDiff?'on':'';b.textContent=d.emoji+' '+d.name;b.onclick=()=>setDiff(i);row.appendChild(b)});
 }
 function setDiff(i){curDiff=i;document.querySelectorAll('#diffRow button').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
+function toggleLoop(){loopMode=!loopMode;document.getElementById('loopBtn').textContent=loopMode?'🔄 Loop':'🔗 Chain';document.getElementById('loopBtn').className=loopMode?'on':'';newGame()}
 
 function cellSize(){const maxW=Math.min(window.innerWidth-24,500);return Math.max(28,Math.min(Math.floor(maxW/COLS),52))}
 
@@ -156,19 +158,20 @@ function genPath(rows,cols,rng){
   const vis=Array.from({length:rows},()=>Array(cols).fill(false));
   const path=[],total=rows*cols;const sr=Math.floor(rng()*rows),sc=Math.floor(rng()*cols);let it=0;
   function nb(r,c){const n=[];if(r>0&&!vis[r-1][c])n.push([r-1,c]);if(r<rows-1&&!vis[r+1][c])n.push([r+1,c]);if(c>0&&!vis[r][c-1])n.push([r,c-1]);if(c<cols-1&&!vis[r][c+1])n.push([r,c+1]);return n}
-  function solve(r,c){if(++it>300000)return false;vis[r][c]=true;path.push({r,c});if(path.length===total)return true;const nn=nb(r,c);nn.sort((a,b)=>nb(a[0],a[1]).length-nb(b[0],b[1]).length||(rng()-.5));for(const[nr,nc]of nn)if(solve(nr,nc))return true;vis[r][c]=false;path.pop();return false}
+  function solve(r,c){if(++it>300000)return false;vis[r][c]=true;path.push({r,c});if(path.length===total){if(!loopMode)return true;return isAdj(r,c,sr,sc)}const nn=nb(r,c);nn.sort((a,b)=>nb(a[0],a[1]).length-nb(b[0],b[1]).length||(rng()-.5));for(const[nr,nc]of nn)if(solve(nr,nc))return true;vis[r][c]=false;path.pop();return false}
   return solve(sr,sc)?path:null;
 }
 function genChain(path,maxNum,rng){
   const doms=[];for(let a=0;a<=maxNum;a++)for(let b=a+1;b<=maxNum;b++)doms.push([a,b]);
-  shuffle(doms,rng);const numDom=path.length/2;const used=Array(doms.length).fill(false);const chain=[];let it=0;
-  function solve(pos,lastVal){if(++it>100000)return false;if(pos===numDom)return true;for(let i=0;i<doms.length;i++){if(used[i])continue;const[a,b]=doms[i];if(pos===0){used[i]=true;chain.push({a,b});if(solve(1,b))return true;chain.pop();chain.push({a:b,b:a});if(solve(1,a))return true;chain.pop();used[i]=false}else{if(a===lastVal){used[i]=true;chain.push({a,b});if(solve(pos+1,b))return true;chain.pop();used[i]=false}if(b===lastVal){used[i]=true;chain.push({a:b,b:a});if(solve(pos+1,a))return true;chain.pop();used[i]=false}}}return false}
+  shuffle(doms,rng);const numDom=path.length/2;const used=Array(doms.length).fill(false);const chain=[];let firstVal=null;let it=0;
+  function solve(pos,lastVal){if(++it>100000)return false;if(pos===numDom)return loopMode?lastVal===firstVal:true;for(let i=0;i<doms.length;i++){if(used[i])continue;const[a,b]=doms[i];if(pos===0){used[i]=true;chain.push({a,b});firstVal=a;if(solve(1,b))return true;chain.pop();chain.push({a:b,b:a});firstVal=b;if(solve(1,a))return true;chain.pop();used[i]=false}else{if(a===lastVal){used[i]=true;chain.push({a,b});if(solve(pos+1,b))return true;chain.pop();used[i]=false}if(b===lastVal){used[i]=true;chain.push({a:b,b:a});if(solve(pos+1,a))return true;chain.pop();used[i]=false}}}return false}
   return solve(0,null)?chain:null;
 }
 
 function countTraps(grid,path,chain,rows,cols){
   const solLinks=new Set();
   for(let d=0;d<chain.length-1;d++){const e=path[d*2+1],s=path[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;solLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
+  if(loopMode){const e=path[path.length-1],s=path[0];const ek=e.r*100+e.c,sk=s.r*100+s.c;solLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   const cellDom={};
   for(let d=0;d<chain.length;d++){cellDom[path[d*2].r*100+path[d*2].c]=d;cellDom[path[d*2+1].r*100+path[d*2+1].c]=d}
   let traps=0;
@@ -190,6 +193,7 @@ function generate(){
     let ok=true;
     for(let i=0;i<path.length-1;i++)if(!isAdj(path[i].r,path[i].c,path[i+1].r,path[i+1].c)){ok=false;break}
     for(let i=0;i<chain.length-1&&ok;i++)if(chain[i].b!==chain[i+1].a)ok=false;
+    if(loopMode&&ok&&chain[chain.length-1].b!==chain[0].a)ok=false;
     if(!ok)continue;
     const traps=countTraps(g,path,chain,ROWS,COLS);
     if(traps<range[0]||traps>range[1])continue;
@@ -202,7 +206,7 @@ function generate(){
 function newGame(){
   if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
   placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
-  document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+' ('+lastTraps+' traps)';
+  document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
   render();
 }
 function onCellDown(r,c){if(usedCells.has(r*100+c))return;dragStart={r,c};firstClick={r,c};render()}
@@ -234,6 +238,7 @@ function showSolution(){
     placed.push({r1:c1.r,c1:c1.c,r2:c2.r,c2:c2.c});usedCells.add(c1.r*100+c1.c);usedCells.add(c2.r*100+c2.c);
     if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   }
+  if(loopMode){const e=solPath[solPath.length-1],s=solPath[0];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
 }
 
@@ -348,19 +353,26 @@ function animateSnake(){
   for(const lk of userLinks){
     const[ak,bk]=lk.split('-').map(Number);
     const da=cellDom[ak],db=cellDom[bk];
-    if(da!==undefined&&db!==undefined&&da!==db){adj[da].push({to:db,via:[ak,bk]});adj[db].push({to:da,via:[bk,ak]})}
+    if(da!==undefined&&db!==undefined&&da!==db&&!adj[da].some(e=>e.to===db)){adj[da].push({to:db,via:[ak,bk]});adj[db].push({to:da,via:[bk,ak]})}
   }
-  let start=-1;for(let i=0;i<placed.length;i++)if(adj[i].length<=1){start=i;break}
-  if(start<0)start=0;
-  const order=[];const vis=new Set();
-  let cur=start;
-  while(cur!==-1&&!vis.has(cur)){
-    vis.add(cur);order.push(cur);
-    let next=-1;
-    for(const e of adj[cur])if(!vis.has(e.to)){next=e.to;break}
-    cur=next;
+  // Find endpoint (domino with <=1 link) or any for loop
+  let order=null;
+  // Try each domino as start until walk covers all
+  for(let s=0;s<placed.length;s++){
+    const tryStart=loopMode?s:(adj[s].length<=1?s:-1);
+    if(tryStart<0)continue;
+    const o=[];const vis=new Set();let cur=tryStart;
+    while(cur!==-1&&!vis.has(cur)){
+      vis.add(cur);o.push(cur);
+      let next=-1;
+      for(const e of adj[cur])if(!vis.has(e.to)){next=e.to;break}
+      cur=next;
+    }
+    if(o.length===placed.length){order=o;break}
+    if(!loopMode)break; // chain mode: only one valid start
   }
-  if(order.length!==placed.length)return;
+  if(!order)return;
+  // Determine cell order within each domino (entry side)
   const cs=cellSize();
   const pts=[];
   for(let oi=0;oi<order.length;oi++){
@@ -383,6 +395,8 @@ function animateSnake(){
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.id='snakeSvg';svg.setAttribute('width',w);svg.setAttribute('height',h);
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  // In loop mode, close the path back to start
+  if(loopMode)pts.push({x:pts[0].x,y:pts[0].y});
   const pstr=pts.map(p=>p.x+','+p.y).join(' ');
   const line=document.createElementNS('http://www.w3.org/2000/svg','polyline');
   line.setAttribute('points',pstr);line.classList.add('snake-line');
@@ -390,7 +404,6 @@ function animateSnake(){
   line.style.strokeDasharray=len;line.style.setProperty('--len',len);
   line.style.animation=`snakeDraw ${Math.max(1.5,len/300)}s ease-out forwards, snakePulse 2s ease-in-out 2s infinite`;
   svg.appendChild(line);
-  // Helper: place label above or below depending on position
   function addLabel(x,y,text){
     const lb=document.createElementNS('http://www.w3.org/2000/svg','text');
     lb.setAttribute('x',x);lb.setAttribute('text-anchor','middle');
@@ -398,17 +411,22 @@ function animateSnake(){
     if(y<cs){lb.setAttribute('y',y+20)}else{lb.setAttribute('y',y-12)}
     lb.textContent=text;svg.appendChild(lb);
   }
-  // Start dot + label
-  const d1=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',7);d1.classList.add('snake-dot');
-  svg.appendChild(d1);
-  addLabel(pts[0].x,pts[0].y,'START');
-  // End dot + label
-  const ep=pts[pts.length-1];
-  const d2=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  d2.setAttribute('cx',ep.x);d2.setAttribute('cy',ep.y);d2.setAttribute('r',7);d2.classList.add('snake-dot');d2.style.fill='var(--ok)';
-  svg.appendChild(d2);
-  addLabel(ep.x,ep.y,'FINISH');
+  if(!loopMode){
+    const d1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',7);d1.classList.add('snake-dot');
+    svg.appendChild(d1);
+    addLabel(pts[0].x,pts[0].y,'START');
+    const ep=pts[pts.length-1];
+    const d2=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    d2.setAttribute('cx',ep.x);d2.setAttribute('cy',ep.y);d2.setAttribute('r',7);d2.classList.add('snake-dot');d2.style.fill='var(--ok)';
+    svg.appendChild(d2);
+    addLabel(ep.x,ep.y,'FINISH');
+  } else {
+    const d1=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    d1.setAttribute('cx',pts[0].x);d1.setAttribute('cy',pts[0].y);d1.setAttribute('r',7);d1.classList.add('snake-dot');d1.style.fill='var(--ok)';
+    svg.appendChild(d1);
+    addLabel(pts[0].x,pts[0].y,'LOOP');
+  }
   document.getElementById('board').appendChild(svg);
 }
 
@@ -468,12 +486,13 @@ function renderInfo(){
   for(const l of userLinks){const[a,b]=l.split('-').map(Number);if(grid[Math.floor(a/100)][a%100]===grid[Math.floor(b/100)][b%100])cOk++}
   const need=TOTAL/2;
   let t='Dominoes: '+placed.length+'/'+need+' | Traps: '+lastTraps;
+  const needLinks=loopMode?need:need-1;
   if(cT>0)t+=' | Chain: '+cOk+'/'+cT+(cOk===cT?' ✅':' ❌');
   document.getElementById('info').textContent=t;
-  if(placed.length===need&&cT===need-1&&cOk===cT){
+  if(placed.length===need&&cT===needLinks&&cOk===cT){
     const ds=new Set();let ok=true;
     for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);if(ds.has(k)){ok=false;break}ds.add(k)}
-    if(ok){document.getElementById('msg').textContent='🎉 Solved! You found the domino snake!';animateSnake()}
+    if(ok){document.getElementById('msg').textContent=loopMode?'🎉 Solved! The snake bites its tail!':'🎉 Solved! You found the domino snake!';animateSnake()}
   }
 }
 
