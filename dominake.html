@@ -33,12 +33,14 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 #snakeSvg .snake-dot{fill:var(--match);filter:drop-shadow(0 0 3px var(--match))}
 #snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke}
 #hlSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:15}
-#hlSvg .hl-f{stroke:var(--accent);fill:var(--accent);opacity:.7}
-#hlSvg .hl-b{stroke:var(--break);fill:var(--break);opacity:.45;stroke-dasharray:4 3}
+#hlSvg .hl-f{stroke:var(--ok);fill:var(--ok);opacity:.7}
+#hlSvg .hl-h{stroke:var(--accent);fill:var(--accent);opacity:.55;stroke-dasharray:6 3}
+#hlSvg .hl-b{stroke:var(--break);fill:var(--break);opacity:.4;stroke-dasharray:3 3}
 #hlSvg line{stroke-width:2.5;stroke-linecap:round}
 #hlSvg circle{r:5}
-.cell.hl-cell{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--bg2))}
-.cell.hl-blocked{box-shadow:inset 0 0 0 2px var(--break);background:color-mix(in srgb,var(--break) 10%,var(--bg2))}
+.cell.hl-free{box-shadow:inset 0 0 0 2px var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--bg2))}
+.cell.hl-half{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg2))}
+.cell.hl-blocked{box-shadow:inset 0 0 0 2px var(--break);background:color-mix(in srgb,var(--break) 8%,var(--bg2))}
 @keyframes snakeDraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
 @keyframes snakePulse{0%,100%{opacity:.7}50%{opacity:1}}
 .cell{display:flex;align-items:center;justify-content:center;font-weight:700;border:3px solid var(--border);background:var(--bg2);cursor:pointer;position:relative;transition:background .12s;-webkit-user-drag:none;touch-action:none}
@@ -88,7 +90,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v13.8</span></h1>
+<h1>🐍 Dominake <span class="ver">v13.9</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -448,7 +450,7 @@ function drawSnakeSvg(pts){
 // ===== HIGHLIGHT DOMINO POSITIONS =====
 function renderHighlight(){
   const old=document.getElementById('hlSvg');if(old)old.remove();
-  document.querySelectorAll('.cell.hl-cell,.cell.hl-blocked').forEach(c=>{c.classList.remove('hl-cell');c.classList.remove('hl-blocked')});
+  document.querySelectorAll('.cell.hl-free,.cell.hl-half,.cell.hl-blocked').forEach(c=>{c.classList.remove('hl-free');c.classList.remove('hl-half');c.classList.remove('hl-blocked')});
   if(!hlDom||!grid)return;
   const cs=cellSize();
   const {a,b}=hlDom;
@@ -459,27 +461,28 @@ function renderHighlight(){
       if(nr>=ROWS||nc>=COLS)continue;
       const v1=grid[r][c],v2=grid[nr][nc];
       if((v1===a&&v2===b)||(v1===b&&v2===a)){
-        const busy=usedCells.has(r*100+c)||usedCells.has(nr*100+nc);
-        pairs.push({r1:r,c1:c,r2:nr,c2:nc,blocked:busy});
+        const b1=usedCells.has(r*100+c),b2=usedCells.has(nr*100+nc);
+        const st=b1&&b2?2:(b1||b2?1:0);
+        pairs.push({r1:r,c1:c,r2:nr,c2:nc,st});
       }
     }
   }
   if(!pairs.length)return;
   const board=document.getElementById('board');
   const cells=board.querySelectorAll('.cell');
-  const hlFree=new Set(),hlBlock=new Set();
+  const hlFree=new Set(),hlHalf=new Set(),hlBlock=new Set();
   for(const p of pairs){
-    if(p.blocked){hlBlock.add(p.r1*100+p.c1);hlBlock.add(p.r2*100+p.c2)}
-    else{hlFree.add(p.r1*100+p.c1);hlFree.add(p.r2*100+p.c2)}
+    const s=p.st===0?hlFree:p.st===1?hlHalf:hlBlock;
+    s.add(p.r1*100+p.c1);s.add(p.r2*100+p.c2);
   }
-  cells.forEach(cell=>{const ck=+cell.dataset.r*100+(+cell.dataset.c);if(hlFree.has(ck))cell.classList.add('hl-cell');else if(hlBlock.has(ck))cell.classList.add('hl-blocked')});
+  cells.forEach(cell=>{const ck=+cell.dataset.r*100+(+cell.dataset.c);if(hlFree.has(ck))cell.classList.add('hl-free');else if(hlHalf.has(ck))cell.classList.add('hl-half');else if(hlBlock.has(ck))cell.classList.add('hl-blocked')});
   const w=COLS*cs,h=ROWS*cs;
   const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.id='hlSvg';svg.setAttribute('width',w);svg.setAttribute('height',h);
   svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
   for(const p of pairs){
     const x1=p.c1*cs+cs/2,y1=p.r1*cs+cs/2,x2=p.c2*cs+cs/2,y2=p.r2*cs+cs/2;
-    const cls=p.blocked?'hl-b':'hl-f';
+    const cls=p.st===0?'hl-f':p.st===1?'hl-h':'hl-b';
     const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
     ln.setAttribute('x1',x1);ln.setAttribute('y1',y1);ln.setAttribute('x2',x2);ln.setAttribute('y2',y2);
     ln.classList.add(cls);svg.appendChild(ln);
