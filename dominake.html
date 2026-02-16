@@ -85,7 +85,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v13.5</span></h1>
+<h1>🐍 Dominake <span class="ver">v13.6</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -244,7 +244,7 @@ function showSolution(){
     if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   }
   if(loopMode){const e=solPath[solPath.length-1],s=solPath[0];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
-  hlDom=null;render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
+  render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
 }
 
 // ===== INFO & TUTORIAL =====
@@ -260,7 +260,7 @@ function showInfo(){
     '• Goal: all unique dominoes (no doubles), linked into one snake<br>'+
     '• Need N−1 matching links for N dominoes<br>'+
     '• Traps = false matches that mislead you<br>'+
-    '• Click a domino in the set below to see possible positions<br><br>'+
+    '• Hold a domino in the set below to see possible positions<br><br>'+
     '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Tutorial</button><br>'+
     '<span style="color:var(--muted)">Click ℹ again to close</span></div>';
 }
@@ -536,7 +536,16 @@ function renderInfo(){
     if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
     if(hlDom&&hlDom.a===a&&hlDom.b===b)d.classList.add('hl');
     d.innerHTML=a+'<span class="rdot"></span>'+b;
-    ((va,vb)=>{d.addEventListener('click',()=>{if(hlDom&&hlDom.a===va&&hlDom.b===vb)hlDom=null;else hlDom={a:va,b:vb};renderHighlight();renderInfo()})})(a,b);
+    ((va,vb)=>{
+      function show(){hlDom={a:va,b:vb};renderHighlight();renderInfo()}
+      function hide(){hlDom=null;renderHighlight();renderInfo()}
+      d.addEventListener('mousedown',show);
+      d.addEventListener('mouseup',hide);
+      d.addEventListener('mouseleave',hide);
+      d.addEventListener('touchstart',e=>{e.preventDefault();show()},{passive:false});
+      d.addEventListener('touchend',hide);
+      d.addEventListener('touchcancel',hide);
+    })(a,b);
     rg.appendChild(d);
   }
   let cOk=0;const cT=userLinks.size;
