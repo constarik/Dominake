@@ -32,6 +32,10 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 #snakeSvg .snake-line{fill:none;stroke:var(--match);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--match))}
 #snakeSvg .snake-dot{fill:var(--match);filter:drop-shadow(0 0 3px var(--match))}
 #snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke}
+#hlSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:15}
+#hlSvg line{stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;opacity:.7}
+#hlSvg circle{fill:var(--accent);opacity:.5}
+.cell.hl-cell{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--bg2))}
 @keyframes snakeDraw{from{stroke-dashoffset:var(--len)}to{stroke-dashoffset:0}}
 @keyframes snakePulse{0%,100%{opacity:.7}50%{opacity:1}}
 .cell{display:flex;align-items:center;justify-content:center;font-weight:700;border:3px solid var(--border);background:var(--bg2);cursor:pointer;position:relative;transition:background .12s;-webkit-user-drag:none;touch-action:none}
@@ -52,9 +56,10 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 #ref{margin:6px auto;max-width:500px}
 .rt{text-align:center;color:var(--muted);font-size:.75rem;margin-bottom:4px}
 .rg{display:flex;flex-wrap:wrap;gap:2px;justify-content:center}
-.rd{display:flex;align-items:center;gap:1px;padding:1px 5px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);font-size:.65rem;font-weight:600}
+.rd{display:flex;align-items:center;gap:1px;padding:1px 5px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);font-size:.65rem;font-weight:600;cursor:pointer}
 .rd.ok{background:color-mix(in srgb,var(--ok) 15%,var(--bg2));border-color:var(--ok);color:var(--ok)}
 .rd.dup{background:color-mix(in srgb,var(--break) 15%,var(--bg2));border-color:var(--break);color:var(--break)}
+.rd.hl{background:color-mix(in srgb,var(--accent) 30%,var(--bg2));border-color:var(--accent);color:var(--accent);box-shadow:0 0 4px var(--accent)}
 .rdot{width:4px;height:4px;border-radius:50%;background:var(--muted);margin:0 1px}
 #msg{color:var(--match);font-size:.85rem;margin:4px 0;min-height:1.1em;text-align:center}
 #themes{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
@@ -80,7 +85,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v13.4</span></h1>
+<h1>🐍 Dominake <span class="ver">v13.5</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -126,7 +131,7 @@ const THEMES=[
 let curTheme=0,curSize=1,curDiff=0;
 let ROWS,COLS,MAX_NUM,TOTAL;
 let grid,solPath,solChain,rng,lastTraps=0;
-let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false;
+let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false,hlDom=null;
 
 function initThemes(){
   const c=document.getElementById('themes');
@@ -205,7 +210,7 @@ function generate(){
 // ===== GAMEPLAY =====
 function newGame(){
   if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
-  placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
+  placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
   document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
   render();
 }
@@ -230,7 +235,7 @@ function undoLast(){
   for(const l of[...userLinks]){const[a,b]=l.split('-').map(Number);if(a===k1||a===k2||b===k1||b===k2)userLinks.delete(l)}
   firstClick=null;render();
 }
-function resetAll(){placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();document.getElementById('msg').textContent='Reset.';render()}
+function resetAll(){placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;document.getElementById('msg').textContent='Reset.';render()}
 function showSolution(){
   if(!solChain)return;placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
   for(let d=0;d<solChain.length;d++){
@@ -239,7 +244,7 @@ function showSolution(){
     if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   }
   if(loopMode){const e=solPath[solPath.length-1],s=solPath[0];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
-  render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
+  hlDom=null;render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
 }
 
 // ===== INFO & TUTORIAL =====
@@ -254,7 +259,8 @@ function showInfo(){
     '• Yellow = values match ✓ &nbsp; Red = mismatch ✗<br>'+
     '• Goal: all unique dominoes (no doubles), linked into one snake<br>'+
     '• Need N−1 matching links for N dominoes<br>'+
-    '• Traps = false matches that mislead you<br><br>'+
+    '• Traps = false matches that mislead you<br>'+
+    '• Click a domino in the set below to see possible positions<br><br>'+
     '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Tutorial</button><br>'+
     '<span style="color:var(--muted)">Click ℹ again to close</span></div>';
 }
@@ -436,6 +442,47 @@ function drawSnakeSvg(pts){
   document.getElementById('board').appendChild(svg);
 }
 
+// ===== HIGHLIGHT DOMINO POSITIONS =====
+function renderHighlight(){
+  const old=document.getElementById('hlSvg');if(old)old.remove();
+  document.querySelectorAll('.cell.hl-cell').forEach(c=>c.classList.remove('hl-cell'));
+  if(!hlDom||!grid)return;
+  const cs=cellSize();
+  const {a,b}=hlDom;
+  const pairs=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(usedCells.has(r*100+c))continue;
+    for(const[dr,dc]of[[0,1],[1,0]]){
+      const nr=r+dr,nc=c+dc;
+      if(nr>=ROWS||nc>=COLS||usedCells.has(nr*100+nc))continue;
+      const v1=grid[r][c],v2=grid[nr][nc];
+      if((v1===a&&v2===b)||(v1===b&&v2===a))pairs.push({r1:r,c1:c,r2:nr,c2:nc});
+    }
+  }
+  if(!pairs.length)return;
+  const board=document.getElementById('board');
+  const cells=board.querySelectorAll('.cell');
+  const hlCells=new Set();
+  for(const p of pairs){hlCells.add(p.r1*100+p.c1);hlCells.add(p.r2*100+p.c2)}
+  cells.forEach(cell=>{const ck=+cell.dataset.r*100+(+cell.dataset.c);if(hlCells.has(ck))cell.classList.add('hl-cell')});
+  const w=COLS*cs,h=ROWS*cs;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.id='hlSvg';svg.setAttribute('width',w);svg.setAttribute('height',h);
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  for(const p of pairs){
+    const x1=p.c1*cs+cs/2,y1=p.r1*cs+cs/2,x2=p.c2*cs+cs/2,y2=p.r2*cs+cs/2;
+    const ln=document.createElementNS('http://www.w3.org/2000/svg','line');
+    ln.setAttribute('x1',x1);ln.setAttribute('y1',y1);ln.setAttribute('x2',x2);ln.setAttribute('y2',y2);
+    svg.appendChild(ln);
+    for(const[cx,cy]of[[x1,y1],[x2,y2]]){
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('r',5);
+      svg.appendChild(dot);
+    }
+  }
+  board.appendChild(svg);
+}
+
 // ===== RENDER =====
 function render(){
   const board=document.getElementById('board');const cs=cellSize();const fs=Math.max(cs*0.3,12);
@@ -478,6 +525,7 @@ function render(){
     cell.dataset.r=r;cell.dataset.c=c;board.appendChild(cell);
   }
   renderInfo();
+  renderHighlight();
 }
 
 function renderInfo(){
@@ -486,7 +534,10 @@ function renderInfo(){
   for(let a=0;a<=MAX_NUM;a++)for(let b=a+1;b<=MAX_NUM;b++){
     const d=document.createElement('div');d.className='rd';const k=a*100+b;
     if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
-    d.innerHTML=a+'<span class="rdot"></span>'+b;rg.appendChild(d);
+    if(hlDom&&hlDom.a===a&&hlDom.b===b)d.classList.add('hl');
+    d.innerHTML=a+'<span class="rdot"></span>'+b;
+    ((va,vb)=>{d.addEventListener('click',()=>{if(hlDom&&hlDom.a===va&&hlDom.b===vb)hlDom=null;else hlDom={a:va,b:vb};renderHighlight();renderInfo()})})(a,b);
+    rg.appendChild(d);
   }
   let cOk=0;const cT=userLinks.size;
   for(const l of userLinks){const[a,b]=l.split('-').map(Number);if(grid[Math.floor(a/100)][a%100]===grid[Math.floor(b/100)][b%100])cOk++}
