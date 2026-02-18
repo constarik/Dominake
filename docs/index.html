@@ -34,8 +34,8 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 #board{display:inline-grid;gap:0;margin:6px auto;user-select:none;position:relative}
 #snakeSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:20}
 #snakeSvg .snake-line{fill:none;stroke:var(--match);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--match))}
-#snakeSvg .snake-dot{fill:var(--match);filter:drop-shadow(0 0 3px var(--match))}
-#snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke}
+#snakeSvg .snake-dot{fill:var(--match);opacity:.45;filter:drop-shadow(0 0 3px var(--match))}
+#snakeSvg .snake-label{font-family:'Segoe UI',system-ui,sans-serif;font-size:10px;font-weight:700;fill:var(--ok);stroke:var(--bg);stroke-width:3;paint-order:stroke;opacity:.6}
 #hlSvg{position:absolute;top:0;left:0;pointer-events:none;z-index:15}
 #hlSvg .hl-f{stroke:var(--ok);fill:var(--ok);opacity:.7}
 #hlSvg .hl-h{stroke:var(--accent);fill:var(--accent);opacity:.55;stroke-dasharray:6 3}
@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.0.2</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.2</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -196,6 +196,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </div>
 <div id="ref"><div class="rt" onclick="toggleRef()">Domino Set (no doubles) ▾</div><div class="rg" id="rg"></div></div>
 <div class="info" id="info"></div>
+<div id="shareBar" style="text-align:center;margin-top:4px;display:none"><button class="share-btn" onclick="shareResult()">📤 Share puzzle</button><span id="shareStatus" class="share-copied"></span></div>
 <div id="tutOv" style="display:none"></div>
 <div id="infoOv" style="display:none"></div>
 <div id="trophyOv" style="display:none"></div>
@@ -223,7 +224,7 @@ const THEMES=[
 let curTheme=0,curSize=1,curDiff=0;
 let ROWS,COLS,MAX_NUM,TOTAL;
 let grid,solPath,solChain,rng,lastTraps=0;
-let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false,hlDom=null;
+let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false,hlDom=null,solutionShown=false;
 let gameStartTime=0,timerInterval=null,elapsed=0,gameSolved=false,gameStarted=false;
 
 function initThemes(){
@@ -289,7 +290,7 @@ function genPath(rows,cols,rng){
   const vis=Array.from({length:rows},()=>Array(cols).fill(false));
   const path=[],total=rows*cols;const sr=Math.floor(rng()*rows),sc=Math.floor(rng()*cols);let it=0;
   function nb(r,c){const n=[];if(r>0&&!vis[r-1][c])n.push([r-1,c]);if(r<rows-1&&!vis[r+1][c])n.push([r+1,c]);if(c>0&&!vis[r][c-1])n.push([r,c-1]);if(c<cols-1&&!vis[r][c+1])n.push([r,c+1]);return n}
-  function solve(r,c){if(++it>300000)return false;vis[r][c]=true;path.push({r,c});if(path.length===total){if(!loopMode)return true;return isAdj(r,c,sr,sc)}const nn=nb(r,c);nn.sort((a,b)=>nb(a[0],a[1]).length-nb(b[0],b[1]).length||(rng()-.5));for(const[nr,nc]of nn)if(solve(nr,nc))return true;vis[r][c]=false;path.pop();return false}
+  function solve(r,c){if(++it>300000)return false;vis[r][c]=true;path.push({r,c});if(path.length===total){if(!loopMode)return true;if(isAdj(r,c,sr,sc))return true;vis[r][c]=false;path.pop();return false}const nn=nb(r,c);nn.sort((a,b)=>nb(a[0],a[1]).length-nb(b[0],b[1]).length||(rng()-.5));for(const[nr,nc]of nn)if(solve(nr,nc))return true;vis[r][c]=false;path.pop();return false}
   return solve(sr,sc)?path:null;
 }
 function genChain(path,maxNum,rng){
@@ -337,7 +338,7 @@ function generate(forceSeed){
 
 // ===== TIMER =====
 function startTimer(){
-  stopTimer();gameStartTime=Date.now();elapsed=0;gameSolved=false;
+  stopTimer();gameStartTime=Date.now();elapsed=0;gameSolved=false;solutionShown=false;
   const td=document.getElementById('timer');td.classList.add('running');
   timerInterval=setInterval(()=>{
     if(gameSolved)return;
@@ -391,9 +392,10 @@ function setBestTime(t){try{localStorage.setItem(getBestKey(),t)}catch(e){}}
 function newGame(){
   if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
   placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
-  gameSolved=false;gameStarted=false;hintMode=false;
+  gameSolved=false;gameStarted=false;hintMode=false;solutionShown=false;
   if(isMobile()){document.getElementById('settingsPanel').classList.add('collapsed')}
   document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
+  document.getElementById('shareBar').style.display='block';
   updateHintToggle();
   stopTimer();document.getElementById('timer').textContent='0:00';
   render();
@@ -421,7 +423,7 @@ function undoLast(){
 }
 function resetAll(){placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;document.getElementById('msg').textContent='Reset.';render()}
 function showSolution(){
-  if(!solChain)return;placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();
+  if(!solChain)return;placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();solutionShown=true;
   for(let d=0;d<solChain.length;d++){
     const c1=solPath[d*2],c2=solPath[d*2+1];
     placed.push({r1:c1.r,c1:c1.c,r2:c2.r,c2:c2.c});usedCells.add(c1.r*100+c1.c);usedCells.add(c2.r*100+c2.c);
@@ -574,6 +576,16 @@ function showTutorial(){
 // ===== SNAKE ANIMATION =====
 function animateSnake(){
   const old=document.getElementById('snakeSvg');if(old)old.remove();
+  // If solution path available (from Solve or verified win), use it directly
+  if(solutionShown&&solPath){
+    const cs=cellSize();
+    const pts=[];
+    for(const p of solPath)pts.push({x:p.c*cs+cs/2,y:p.r*cs+cs/2});
+    if(loopMode)pts.push({x:pts[0].x,y:pts[0].y});
+    drawSnakeSvg(pts);
+    return;
+  }
+  // Reconstruct from user placements
   const cellDom={};
   for(let i=0;i<placed.length;i++){const d=placed[i];cellDom[d.r1*100+d.c1]=i;cellDom[d.r2*100+d.c2]=i}
   const adj=Array.from({length:placed.length},()=>[]);
@@ -819,8 +831,8 @@ function renderInfo(){
       if(hintMode)msg+=' | 💡 Hint was on';
       if(isNewBest)msg+=' | 🏆 New best!';
       else if(clean){const best=getBestTime();if(best>0)msg+=' | Best: '+formatTime(best)}
-      msg+='\n<button class="share-btn" onclick="shareResult()">📤 Share</button><span id="shareStatus" class="share-copied"></span>';
       document.getElementById('msg').innerHTML=msg.replace(/\n/g,'<br>');
+      document.querySelector('#shareBar .share-btn').textContent='📤 Share result';
       animateSnake();
     }
   }
@@ -1078,12 +1090,17 @@ function getPuzzleUrl(){
 }
 
 function shareResult(){
+  if(!lastSeed)return;
   const cfg=SIZES[curSize].label+' '+DIFFS[curDiff].name+(loopMode?' Loop':' Chain');
-  const clean=!hintMode;
-  const star=clean?' ⭐':'';
-  const time=formatTime(elapsed);
   const url=getPuzzleUrl();
-  const text='🐍 Dominake — I solved '+cfg+' in '+time+'!'+star+'\nCan you beat me? '+url;
+  let text;
+  if(gameSolved&&!solutionShown){
+    const clean=!hintMode;
+    const star=clean?' ⭐':'';
+    text='🐍 Dominake — I solved '+cfg+' in '+formatTime(elapsed)+'!'+star+'\nCan you beat me? '+url;
+  } else {
+    text='🐍 Dominake — Try this '+cfg+' puzzle!\n'+url;
+  }
   navigator.clipboard.writeText(text).then(()=>{
     const sp=document.getElementById('shareStatus');
     if(sp){sp.textContent='Copied!';setTimeout(()=>sp.textContent='',2000)}
@@ -1104,8 +1121,9 @@ function loadFromUrl(){
   applySize();
   if(generate(seed)){
     placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
-    gameSolved=false;gameStarted=false;hintMode=false;
+    gameSolved=false;gameStarted=false;hintMode=false;solutionShown=false;
     document.getElementById('msg').textContent='🔗 Shared puzzle — '+SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
+    document.getElementById('shareBar').style.display='block';
     updateHintToggle();stopTimer();document.getElementById('timer').textContent='0:00';render();
     // Clean URL without reload
     history.replaceState(null,'',location.pathname);
