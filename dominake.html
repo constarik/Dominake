@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.9.1</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.0</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -197,6 +197,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 <div id="ref"><div class="rt" onclick="toggleRef()">Domino Set (no doubles) ▾</div><div class="rg" id="rg"></div></div>
 <div class="info" id="info"></div>
 <div id="tutOv" style="display:none"></div>
+<div id="infoOv" style="display:none"></div>
 <div id="trophyOv" style="display:none"></div>
 <div id="nickOv" style="display:none"></div>
 
@@ -431,44 +432,47 @@ function showSolution(){
 
 // ===== INFO & TUTORIAL =====
 function showInfo(){
-  const m=document.getElementById('msg');
-  if(m.dataset.info==='1'){m.textContent='';m.dataset.info='';return}
-  m.dataset.info='1';
-  m.innerHTML='<div style="text-align:left;font-size:.75rem;line-height:1.6;max-width:400px;margin:0 auto;padding:4px">'+
+  const ov=document.getElementById('infoOv');
+  if(ov.style.display==='flex'){ov.style.display='none';return}
+  ov.style.display='flex';ov.className='tut-overlay';
+  ov.innerHTML='<div class="tut-box">'+
     '<div style="text-align:center;margin-bottom:10px">'+
     '<b style="font-size:.9rem;color:var(--match)">🐍 Dominake</b><br>'+
     '<span style="color:var(--muted);font-size:.65rem">Domino + Snake = a unique constraint puzzle</span></div>'+
-    '<b style="color:var(--accent)">🎯 Goal</b><br>'+
-    'Divide the grid into domino pairs and link them into a continuous snake chain where each connection matches.<br><br>'+
-    '<b style="color:var(--accent)">🎮 How to Play</b><br>'+
+    '<div class="tut-step"><b style="color:var(--accent)">🎯 Goal</b><br>'+
+    'Divide the grid into domino pairs and link them into a continuous snake chain where each connection matches.</div>'+
+    '<div class="tut-step"><b style="color:var(--accent)">🎮 How to Play</b><br>'+
     '‣ Drag or tap two adjacent cells → place a domino<br>'+
     '‣ Click gray marks between dominoes → toggle chain link<br>'+
     '‣ <span style="color:var(--match)">Yellow</span> = values match ✓ &nbsp; <span style="color:var(--break)">Red</span> = mismatch ✗<br>'+
-    '‣ Chain mode: N−1 matching links &nbsp;|&nbsp; Loop mode: N links<br><br>'+
-    '<b style="color:var(--accent)">🔍 Domino Preview</b><br>'+
+    '‣ Chain mode: N−1 matching links &nbsp;|&nbsp; Loop mode: N links</div>'+
+    '<div class="tut-step"><b style="color:var(--accent)">🔍 Domino Preview</b><br>'+
     'Hold any domino in the set below to highlight all matching positions:<br>'+
     '‣ <span style="color:var(--ok)">●</span> Green = both cells free, ready to place<br>'+
     '‣ <span style="color:var(--accent)">●</span> Blue = one cell already occupied<br>'+
-    '‣ <span style="color:var(--break)">●</span> Red = both cells occupied<br><br>'+
-    '<b style="color:var(--accent)">⚙️ Features</b><br>'+
+    '‣ <span style="color:var(--break)">●</span> Red = both cells occupied</div>'+
+    '<div class="tut-step"><b style="color:var(--accent)">⚙️ Features</b><br>'+
     '‣ 3 grid sizes: 4×5 · 6×7 · 8×9<br>'+
     '‣ 3 difficulty levels (trap-based)<br>'+
     '‣ 🔗 Chain / 🔄 Loop modes<br>'+
     '‣ 6 color themes · Snake animation on solve<br>'+
     '‣ Undo & Reset anytime<br>'+
-    '‣ 💡 Hint toggle (before first move): OFF = blind mode ⭐; ON = tap dominos to preview<br>'+
-    '‣ ⏱ Timer + best time tracking (only without hints)<br><br>'+
-    '<b style="color:var(--accent)">🧠 The Math</b><br>'+
+    '‣ 💡 Hint toggle (before first move): OFF = blind mode ⭐<br>'+
+    '‣ ⏱ Timer + best time tracking (only without hints)<br>'+
+    '‣ 🏆 Trophy — records + global leaderboard<br>'+
+    '‣ 📤 Share — challenge friends with the same puzzle</div>'+
+    '<div class="tut-step"><b style="color:var(--accent)">🧠 The Math</b><br>'+
     'Domino chain = Eulerian path in K<sub>n</sub>. Grid path = Hamiltonian path. '+
-    '5×6 is <i>mathematically impossible</i> — K₆ has all vertices odd, violating the Euler condition.<br><br>'+
-    '<button onclick="showTutorial()" style="margin:0 auto;display:block;padding:8px 20px">📖 Interactive Tutorial</button><br>'+
+    '5×6 is <i>mathematically impossible</i> — K₆ has all vertices odd, violating the Euler condition.</div>'+
+    '<button onclick="showTutorial();document.getElementById(\'infoOv\').style.display=\'none\'" style="margin:8px auto;display:block;padding:8px 20px">📖 Interactive Tutorial</button>'+
     '<div style="text-align:center;border-top:1px solid var(--border);padding-top:10px;margin-top:4px">'+
     '<a href="https://constarik.github.io/UnclonedMath/" target="_blank" rel="noopener" '+
     'style="color:var(--muted);text-decoration:none;font-size:.7rem;letter-spacing:.5px;transition:color .2s" '+
     'onmouseover="this.style.color=getComputedStyle(document.documentElement).getPropertyValue(\'--accent\')" '+
     'onmouseout="this.style.color=getComputedStyle(document.documentElement).getPropertyValue(\'--muted\')">'+
-    '🎲 <b>Uncloned Math</b> — original game mechanics<br>by Constantine Razinsky</a><br>'+
-    '<span style="color:var(--muted);font-size:.55rem;opacity:.6">Click ℹ to close</span></div></div>';
+    '🎲 <b>Uncloned Math</b> — original game mechanics<br>by Constantin Razinsky</a></div>'+
+    '<button class="tut-close" onclick="document.getElementById(\'infoOv\').style.display=\'none\'">Close</button>'+
+    '</div>';
 }
 
 function tg(nums,doms,links,R,C){
@@ -514,7 +518,7 @@ function tg(nums,doms,links,R,C){
 }
 
 function showTutorial(){
-  document.getElementById('msg').textContent='';document.getElementById('msg').dataset.info='';
+  document.getElementById('msg').textContent='';document.getElementById('infoOv').style.display='none';
   const ov=document.getElementById('tutOv');ov.style.display='flex';ov.className='tut-overlay';
   const G=[[0,1,1],[0,2,2]];
   const d1=[{r1:0,c1:0,r2:0,c2:1}];
