@@ -157,7 +157,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.8.1</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.8.2</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -871,7 +871,7 @@ async function generateThreeNicks(){
 function showNickPicker(onDone){
   const ov=document.getElementById('nickOv');
   ov.style.display='flex';ov.className='trophy-overlay';
-  ov.innerHTML='<div class="trophy-box"><div class="nick-box"><h3>🎮 Choose Your Name</h3><p style="color:var(--muted);font-size:.75rem;margin-bottom:8px">This name is permanent for all Uncloned Math games</p><div id="nickOptions" class="nick-options"><span class="nick-status">Loading words...</span></div></div></div>';
+  ov.innerHTML='<div class="trophy-box"><div class="nick-box"><h3>🎮 Choose Your Name</h3><p style="color:var(--muted);font-size:.75rem;margin-bottom:8px">This name is permanent for all Uncloned Math games</p><div id="nickOptions" class="nick-options"><span class="nick-status">Loading words...</span></div><button class="trophy-close" onclick="document.getElementById(\'nickOv\').style.display=\'none\'" style="margin-top:8px;font-size:.7rem;opacity:.6">Skip for now</button></div></div>';
   generateThreeNicks().then(names=>{
     const opt=document.getElementById('nickOptions');
     if(!names){opt.innerHTML='<span class="nick-status">Could not load words. Try again later.</span><br><button class="nick-btn" onclick="document.getElementById(\'nickOv\').style.display=\'none\'" style="margin-top:8px">Close</button>';return}
