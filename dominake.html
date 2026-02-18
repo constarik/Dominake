@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.2</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.4</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -315,6 +315,7 @@ function countTraps(grid,path,chain,rows,cols){
 }
 
 let lastSeed=0;
+let gameCfg={sz:0,d:0,loop:false};
 function generate(forceSeed){
   const sz=SIZES[curSize];const range=sz[DIFFS[curDiff].key];
   for(let att=0;att<500;att++){
@@ -384,13 +385,14 @@ function updateHintToggle(){
 }
 
 // ===== BEST TIMES =====
-function getBestKey(){return 'dominake-best-'+curSize+'-'+curDiff+(loopMode?'-loop':'')}
-function getBestTime(){try{return parseInt(localStorage.getItem(getBestKey()))||0}catch(e){return 0}}
-function setBestTime(t){try{localStorage.setItem(getBestKey(),t)}catch(e){}}
+function getBestKey(cfg){const c=cfg||{sz:curSize,d:curDiff,loop:loopMode};return 'dominake-best-'+c.sz+'-'+c.d+(c.loop?'-loop':'')}
+function getBestTime(cfg){try{return parseInt(localStorage.getItem(getBestKey(cfg)))||0}catch(e){return 0}}
+function setBestTime(t,cfg){try{localStorage.setItem(getBestKey(cfg),t)}catch(e){}}
 
 // ===== GAMEPLAY =====
 function newGame(){
   if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
+  gameCfg={sz:curSize,d:curDiff,loop:loopMode};
   placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
   gameSolved=false;gameStarted=false;hintMode=false;solutionShown=false;
   if(isMobile()){document.getElementById('settingsPanel').classList.add('collapsed')}
@@ -830,7 +832,7 @@ function renderInfo(){
       msg+='\n⏱ '+formatTime(elapsed);
       if(hintMode)msg+=' | 💡 Hint was on';
       if(isNewBest)msg+=' | 🏆 New best!';
-      else if(clean){const best=getBestTime();if(best>0)msg+=' | Best: '+formatTime(best)}
+      else if(clean){const best=getBestTime(gameCfg);if(best>0)msg+=' | Best: '+formatTime(best)}
       document.getElementById('msg').innerHTML=msg.replace(/\n/g,'<br>');
       document.querySelector('#shareBar .share-btn').textContent='📤 Share result';
       animateSnake();
@@ -1037,26 +1039,24 @@ function onWin(elapsed,clean){
   // Always record locally
   const stats=getStats();
   stats.solves++;
-  const entry={date:new Date().toISOString(),time:elapsed,size:curSize,diff:curDiff,mode:loopMode?'loop':'chain',clean};
+  const entry={date:new Date().toISOString(),time:elapsed,size:gameCfg.sz,diff:gameCfg.d,mode:gameCfg.loop?'loop':'chain',clean};
   stats.history.unshift(entry);
   if(stats.history.length>50)stats.history.length=50;
   saveStats(stats);
 
   if(clean){
     // Best time
-    const best=getBestTime();
+    const best=getBestTime(gameCfg);
     const isNewBest=best===0||elapsed<best;
-    if(isNewBest)setBestTime(elapsed);
+    if(isNewBest)setBestTime(elapsed,gameCfg);
 
     // Firebase: need nickname
+    const key=SIZES[gameCfg.sz].label+'_'+DIFFS[gameCfg.d].name+'_'+(gameCfg.loop?'Loop':'Chain');
     if(fbReady&&!nickname){
       showNickPicker(()=>{
-        // After nick chosen, submit score
-        const key=SIZES[curSize].label+'_'+DIFFS[curDiff].name+'_'+(loopMode?'Loop':'Chain');
         fbDb.ref('dominake/scores').push({user:nickname,time:elapsed,config:key,date:new Date().toISOString()}).catch(e=>{});
       });
     } else if(fbReady&&nickname){
-      const key=SIZES[curSize].label+'_'+DIFFS[curDiff].name+'_'+(loopMode?'Loop':'Chain');
       fbDb.ref('dominake/scores').push({user:nickname,time:elapsed,config:key,date:new Date().toISOString()}).catch(e=>{});
     }
     return isNewBest;
@@ -1085,13 +1085,13 @@ function decodeSeed(code){
 }
 
 function getPuzzleUrl(){
-  const base=location.origin+location.pathname;
-  return base+'?p='+encodeSeed(lastSeed)+'&sz='+curSize+'&d='+curDiff+(loopMode?'&l=1':'');
+  const base='https://constarik.github.io/Dominake/';
+  return base+'?p='+encodeSeed(lastSeed)+'&sz='+gameCfg.sz+'&d='+gameCfg.d+(gameCfg.loop?'&l=1':'');
 }
 
 function shareResult(){
   if(!lastSeed)return;
-  const cfg=SIZES[curSize].label+' '+DIFFS[curDiff].name+(loopMode?' Loop':' Chain');
+  const cfg=SIZES[gameCfg.sz].label+' '+DIFFS[gameCfg.d].name+(gameCfg.loop?' Loop':' Chain');
   const url=getPuzzleUrl();
   let text;
   if(gameSolved&&!solutionShown){
@@ -1120,6 +1120,7 @@ function loadFromUrl(){
   const lp=p.get('l');if(lp==='1'&&!loopMode)toggleLoop();
   applySize();
   if(generate(seed)){
+    gameCfg={sz:curSize,d:curDiff,loop:loopMode};
     placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
     gameSolved=false;gameStarted=false;hintMode=false;solutionShown=false;
     document.getElementById('msg').textContent='🔗 Shared puzzle — '+SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
