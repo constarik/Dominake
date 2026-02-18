@@ -6,6 +6,8 @@
 <title>Dominake — Domino Snake Puzzle</title>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TRP1QX4878"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-TRP1QX4878');</script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <style>
 :root{
   --bg:#0f172a;--bg2:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#64748b;
@@ -89,6 +91,23 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 .timer.running{color:var(--text)}
 .hint-blink{animation:hintBlink 1.5s ease-in-out infinite}
 @keyframes hintBlink{0%,100%{opacity:.4}50%{opacity:1}}
+.trophy-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.trophy-box{background:var(--bg);border:2px solid var(--border);border-radius:16px;max-width:420px;width:100%;max-height:92vh;overflow-y:auto;padding:20px}
+.trophy-box h2{font-size:1rem;margin-bottom:12px;text-align:center;color:var(--match)}
+.trophy-tab{display:flex;gap:4px;margin-bottom:10px;justify-content:center}
+.trophy-tab button{font-size:.7rem;padding:4px 10px}
+.trophy-table{width:100%;font-size:.7rem;border-collapse:collapse}
+.trophy-table th{color:var(--muted);font-weight:400;padding:3px 4px;text-align:left;border-bottom:1px solid var(--border)}
+.trophy-table td{padding:3px 4px;border-bottom:1px solid color-mix(in srgb,var(--border) 30%,transparent)}
+.trophy-table .best{color:var(--match)}
+.trophy-close{display:block;margin:12px auto 0;padding:6px 20px;font-size:.8rem}
+.nick-box{text-align:center;padding:10px}
+.nick-box h3{font-size:.9rem;color:var(--match);margin-bottom:10px}
+.nick-options{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.nick-btn{padding:8px 16px;font-size:.85rem;border-radius:8px;background:var(--bg2);border:2px solid var(--border);color:var(--text);cursor:pointer;transition:all .2s}
+.nick-btn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--bg2))}
+.nick-status{color:var(--muted);font-size:.65rem;margin-top:4px}
+.nick-bar{color:var(--muted);font-size:.6rem;text-align:center;margin-top:2px}
 .menu-btn{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1.1rem;color:var(--text);touch-action:manipulation;line-height:1}
 .settings-panel{display:contents}
 .settings-panel.collapsed{display:none}
@@ -138,7 +157,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.7.1</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.8</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -147,9 +166,11 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
     <button onclick="undoLast()">↩ Undo</button>
     <button onclick="resetAll()">🗑 Reset</button>
     <button onclick="useHint()" id="hintToggle" class="">💡 Hint</button>
+    <button onclick="showTrophy()" id="trophyBtn">🏆</button>
     <button class="menu-btn" onclick="toggleSettings()">⚙</button>
   </div>
 </div>
+<div id="nickBar" class="nick-bar"></div>
 <div id="timer" class="timer"></div>
 <div class="settings-panel" id="settingsPanel">
   <div class="row" id="szRow"></div>
@@ -172,6 +193,8 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 <div id="ref"><div class="rt" onclick="toggleRef()">Domino Set (no doubles) ▾</div><div class="rg" id="rg"></div></div>
 <div class="info" id="info"></div>
 <div id="tutOv" style="display:none"></div>
+<div id="trophyOv" style="display:none"></div>
+<div id="nickOv" style="display:none"></div>
 
 <script>
 const SIZES=[
@@ -221,6 +244,7 @@ function toggleLoop(){loopMode=!loopMode;document.getElementById('loopBtn').text
 function cellSize(){
   const maxW=Math.min(window.innerWidth-(isMobile()?12:24),500);
   const byW=Math.floor(maxW/COLS);
+  // Calculate available height for board
   const ui=document.querySelector('.top-bar');
   const hdr=document.querySelector('h1');
   const ref=document.getElementById('ref');
@@ -229,13 +253,14 @@ function cellSize(){
   const leg=document.querySelector('.legend');
   let usedH=0;
   [hdr,ui,ref,inf,msg,leg].forEach(el=>{if(el&&el.offsetParent!==null)usedH+=el.offsetHeight});
+  // Add settings panel if visible
   const sp=document.getElementById('settingsPanel');
   if(sp&&!sp.classList.contains('collapsed'))usedH+=sp.offsetHeight;
   const sub=document.querySelector('.subtitle');
   if(sub&&sub.offsetParent!==null)usedH+=sub.offsetHeight;
   const thm=document.getElementById('themes');
   if(thm&&thm.offsetParent!==null)usedH+=thm.offsetHeight;
-  usedH+=24;
+  usedH+=24; // padding + margins
   const availH=window.innerHeight-usedH;
   const byH=Math.floor(availH/ROWS);
   return Math.max(24,Math.min(Math.min(byW,byH),52));
@@ -318,9 +343,9 @@ function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterva
 function formatTime(s){const m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+(s%60)}
 
 // ===== HINT TOGGLE =====
-let hintMode=false;
+let hintMode=false; // default OFF
 function useHint(){
-  if(gameStarted)return;
+  if(gameStarted)return; // disabled after first move
   if(!grid||gameSolved)return;
   hintMode=!hintMode;
   updateHintToggle();
@@ -335,12 +360,15 @@ function updateHintToggle(){
   const btn=document.getElementById('hintToggle');
   btn.className=hintMode?'on':'';
   if(!grid||gameSolved){
+    // no game — hide blink, disable
     btn.classList.remove('hint-blink');
     btn.style.opacity='.4';btn.style.pointerEvents='none';
   } else if(gameStarted){
+    // game in progress — no blink, disabled
     btn.classList.remove('hint-blink');
     btn.style.opacity='.4';btn.style.pointerEvents='none';
   } else {
+    // game loaded, waiting for first move — blink, clickable
     btn.classList.add('hint-blink');
     btn.style.opacity='';btn.style.pointerEvents='';
   }
@@ -753,23 +781,251 @@ function renderInfo(){
       gameSolved=true;stopTimer();elapsed=Math.floor((Date.now()-gameStartTime)/1000);
       updateHintToggle();
       const clean=!hintMode;
-      const best=getBestTime();
-      const isNewBest=clean&&(best===0||elapsed<best);
-      if(isNewBest)setBestTime(elapsed);
+      const isNewBest=onWin(elapsed,clean);
       const star=clean?'⭐':'';
       let msg=loopMode?'🎉 Solved! The snake bites its tail!':'🎉 Solved! You found the domino snake!';
       if(star)msg+=' '+star;
       msg+='\n⏱ '+formatTime(elapsed);
       if(hintMode)msg+=' | 💡 Hint was on';
       if(isNewBest)msg+=' | 🏆 New best!';
-      else if(best>0&&clean)msg+=' | Best: '+formatTime(best);
+      else if(clean){const best=getBestTime();if(best>0)msg+=' | Best: '+formatTime(best)}
       document.getElementById('msg').innerHTML=msg.replace(/\n/g,'<br>');
       animateSnake();
     }
   }
 }
 
+// ===== FIREBASE =====
+const FB_CONFIG={
+  apiKey:"AIzaSyA-dXCBeljE765qfaOBRtUlXLHBl26Y1tU",
+  authDomain:"holepuncher-constr.firebaseapp.com",
+  databaseURL:"https://holepuncher-constr-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"holepuncher-constr",
+  storageBucket:"holepuncher-constr.firebasestorage.app"
+};
+let fbDb=null,fbReady=false;
+function initFirebase(){
+  if(typeof firebase==='undefined')return;
+  try{if(!firebase.apps.length)firebase.initializeApp(FB_CONFIG);fbDb=firebase.database();fbReady=true}catch(e){console.warn('Firebase init failed:',e)}
+}
+
+// ===== NICKNAME =====
+const NICK_KEY='uncloned-nickname';
+let nickname='';
+function getNickname(){try{return localStorage.getItem(NICK_KEY)||''}catch(e){return ''}}
+function setNickname(n){try{localStorage.setItem(NICK_KEY,n)}catch(e){}}
+function updateNickBar(){
+  const bar=document.getElementById('nickBar');
+  if(nickname)bar.textContent='🎮 '+nickname;
+  else bar.textContent='';
+}
+
+// Datamuse: fetch words, filter vulgar, check Firebase
+const VULGAR_LIST=new Set(['ass','asses','bitch','bloody','boob','boobs','butt','cock','cocks','crap','cum','damn','dick','dicks','dildo','fag','fuck','hell','homo','jerk','kinky','lust','meth','milf','moron','negro','nigga','nigger','nude','nudes','oral','orgy','penis','pimp','piss','porn','prick','pussy','queer','rape','scum','sex','sexy','shit','slut','smut','sperm','suck','tit','tits','twat','vagina','whore','weed']);
+async function fetchWords(){
+  try{
+    const offset=Math.floor(Math.random()*500);
+    const r=await fetch('https://api.datamuse.com/words?sp=?????..????????&md=fp&max=200&ofs='+offset);
+    const data=await r.json();
+    return data.filter(w=>{
+      const word=w.word.toLowerCase();
+      if(word.length<5||word.length>9)return false;
+      if(!/^[a-z]+$/.test(word))return false;
+      if(VULGAR_LIST.has(word))return false;
+      // check frequency exists and is reasonable
+      const tags=w.tags||[];
+      const fTag=tags.find(t=>t.startsWith('f:'));
+      if(!fTag)return false;
+      const freq=parseFloat(fTag.substring(2));
+      if(freq<1)return false;
+      // must be noun
+      if(!tags.includes('n'))return false;
+      return true;
+    }).map(w=>w.word.charAt(0).toUpperCase()+w.word.slice(1));
+  }catch(e){console.warn('Datamuse fetch failed:',e);return []}
+}
+
+async function isNickTaken(name){
+  if(!fbReady)return false;
+  try{const snap=await fbDb.ref('uncloned/users/'+name).once('value');return snap.exists()}catch(e){return false}
+}
+
+async function registerNick(name){
+  if(!fbReady)return false;
+  try{await fbDb.ref('uncloned/users/'+name).set({created:new Date().toISOString()});return true}catch(e){return false}
+}
+
+async function generateThreeNicks(){
+  const words=await fetchWords();
+  if(words.length===0)return null;
+  // shuffle
+  for(let i=words.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[words[i],words[j]]=[words[j],words[i]]}
+  const result=[];
+  for(const w of words){
+    if(result.length>=3)break;
+    const taken=await isNickTaken(w);
+    if(!taken)result.push(w);
+  }
+  return result.length>=3?result:null;
+}
+
+function showNickPicker(onDone){
+  const ov=document.getElementById('nickOv');
+  ov.style.display='flex';ov.className='trophy-overlay';
+  ov.innerHTML='<div class="trophy-box"><div class="nick-box"><h3>🎮 Choose Your Name</h3><p style="color:var(--muted);font-size:.75rem;margin-bottom:8px">This name is permanent for all Uncloned Math games</p><div id="nickOptions" class="nick-options"><span class="nick-status">Loading words...</span></div></div></div>';
+  generateThreeNicks().then(names=>{
+    const opt=document.getElementById('nickOptions');
+    if(!names){opt.innerHTML='<span class="nick-status">Could not load words. Try again later.</span><br><button class="nick-btn" onclick="document.getElementById(\'nickOv\').style.display=\'none\'" style="margin-top:8px">Close</button>';return}
+    opt.innerHTML='';
+    names.forEach(n=>{
+      const btn=document.createElement('button');btn.className='nick-btn';btn.textContent=n;
+      btn.onclick=async()=>{
+        opt.querySelectorAll('.nick-btn').forEach(b=>{b.disabled=true;b.style.opacity='.4'});
+        btn.style.opacity='1';btn.textContent=n+' ...';
+        const ok=await registerNick(n);
+        if(ok){nickname=n;setNickname(n);updateNickBar();ov.style.display='none';if(onDone)onDone()}
+        else{btn.textContent=n+' ✗ taken';btn.style.opacity='.4'}
+      };
+      opt.appendChild(btn);
+    });
+  });
+}
+
+// ===== LOCAL STATS =====
+const STATS_KEY='dominake-stats';
+function getStats(){try{return JSON.parse(localStorage.getItem(STATS_KEY))||{solves:0,history:[]}}catch(e){return{solves:0,history:[]}}}
+function saveStats(s){try{localStorage.setItem(STATS_KEY,JSON.stringify(s))}catch(e){}}
+
+function recordSolve(time,size,diff,mode,clean){
+  const stats=getStats();
+  stats.solves++;
+  const entry={date:new Date().toISOString(),time,size,diff,mode:mode?'loop':'chain',clean};
+  stats.history.unshift(entry);
+  if(stats.history.length>50)stats.history.length=50;
+  saveStats(stats);
+  // Firebase global
+  if(clean&&fbReady&&nickname){
+    const key=SIZES[size].label+'_'+DIFFS[diff].name+'_'+(mode?'Loop':'Chain');
+    fbDb.ref('dominake/scores').push({
+      user:nickname,time,config:key,date:new Date().toISOString()
+    }).catch(e=>console.warn('FB write failed:',e));
+  }
+}
+
+// ===== TROPHY POPUP =====
+function showTrophy(){
+  const ov=document.getElementById('trophyOv');
+  ov.style.display='flex';ov.className='trophy-overlay';
+  const stats=getStats();
+  let h='<div class="trophy-box"><h2>🏆 Records</h2>';
+  h+='<div class="trophy-tab"><button class="on" onclick="trophyTab(\'my\')">My Records</button><button onclick="trophyTab(\'global\')">Global Top</button><button onclick="trophyTab(\'history\')">History</button></div>';
+  h+='<div id="trophyContent"></div>';
+  h+='<button class="trophy-close" onclick="document.getElementById(\'trophyOv\').style.display=\'none\'">Close</button></div>';
+  ov.innerHTML=h;
+  trophyTab('my');
+}
+
+function trophyTab(tab){
+  const btns=document.querySelectorAll('.trophy-tab button');
+  btns.forEach((b,i)=>b.className=(tab==='my'&&i===0)||(tab==='global'&&i===1)||(tab==='history'&&i===2)?'on':'');
+  const c=document.getElementById('trophyContent');
+  if(tab==='my')renderMyRecords(c);
+  else if(tab==='global')renderGlobalTop(c);
+  else renderHistory(c);
+}
+
+function renderMyRecords(c){
+  const stats=getStats();
+  let h='<div style="text-align:center;margin-bottom:8px;color:var(--muted);font-size:.75rem">Total solves (no hints): <b style="color:var(--text)">'+stats.solves+'</b></div>';
+  h+='<table class="trophy-table"><tr><th>Config</th><th>Best ⭐</th></tr>';
+  for(const sz of SIZES){
+    for(const df of DIFFS){
+      for(const mode of[false,true]){
+        const key='dominake-best-'+SIZES.indexOf(sz)+'-'+DIFFS.indexOf(df)+(mode?'-loop':'');
+        let best=0;try{best=parseInt(localStorage.getItem(key))||0}catch(e){}
+        const label=sz.label+' '+df.emoji+' '+(mode?'🔄':'🔗');
+        h+='<tr><td>'+label+'</td><td'+(best?' class="best"':'')+'>'+( best?formatTime(best):'—')+'</td></tr>';
+      }
+    }
+  }
+  h+='</table>';
+  c.innerHTML=h;
+}
+
+function renderGlobalTop(c){
+  if(!fbReady){c.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.75rem;padding:20px">Firebase not connected</div>';return}
+  c.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.75rem;padding:20px">Loading...</div>';
+  // Get current config key
+  const key=SIZES[curSize].label+'_'+DIFFS[curDiff].name+'_'+(loopMode?'Loop':'Chain');
+  fbDb.ref('dominake/scores').orderByChild('config').equalTo(key).limitToLast(50).once('value').then(snap=>{
+    const entries=[];
+    snap.forEach(s=>{const v=s.val();entries.push(v)});
+    // Sort by time ascending, deduplicate per user (best only)
+    const best={};
+    entries.forEach(e=>{if(!best[e.user]||e.time<best[e.user].time)best[e.user]=e});
+    const sorted=Object.values(best).sort((a,b)=>a.time-b.time).slice(0,10);
+    let h='<div style="text-align:center;margin-bottom:6px;font-size:.7rem;color:var(--muted)">'+SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+(loopMode?'🔄 Loop':'🔗 Chain')+'</div>';
+    if(!sorted.length){h+='<div style="text-align:center;color:var(--muted);font-size:.75rem;padding:10px">No records yet</div>';c.innerHTML=h;return}
+    h+='<table class="trophy-table"><tr><th>#</th><th>Player</th><th>Time</th></tr>';
+    sorted.forEach((e,i)=>{
+      const me=e.user===nickname;
+      h+='<tr'+(me?' style="color:var(--match)"':'')+'><td>'+(i+1)+'</td><td>'+(me?'⭐ ':'')+e.user+'</td><td>'+formatTime(e.time)+'</td></tr>';
+    });
+    h+='</table>';
+    c.innerHTML=h;
+  }).catch(e=>{c.innerHTML='<div style="text-align:center;color:var(--break);font-size:.75rem;padding:20px">Error loading</div>'});
+}
+
+function renderHistory(c){
+  const stats=getStats();
+  if(!stats.history.length){c.innerHTML='<div style="text-align:center;color:var(--muted);font-size:.75rem;padding:20px">No games yet</div>';return}
+  let h='<table class="trophy-table"><tr><th>Date</th><th>Config</th><th>Time</th><th></th></tr>';
+  stats.history.slice(0,20).forEach(e=>{
+    const d=new Date(e.date);
+    const ds=(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();
+    const cfg=SIZES[e.size].label+' '+DIFFS[e.diff].emoji+' '+(e.mode==='loop'?'🔄':'🔗');
+    h+='<tr><td>'+ds+'</td><td>'+cfg+'</td><td>'+formatTime(e.time)+'</td><td>'+(e.clean?'⭐':'💡')+'</td></tr>';
+  });
+  h+='</table>';
+  c.innerHTML=h;
+}
+
+// ===== MODIFIED WIN: record + nick prompt =====
+function onWin(elapsed,clean){
+  // Always record locally
+  const stats=getStats();
+  stats.solves++;
+  const entry={date:new Date().toISOString(),time:elapsed,size:curSize,diff:curDiff,mode:loopMode?'loop':'chain',clean};
+  stats.history.unshift(entry);
+  if(stats.history.length>50)stats.history.length=50;
+  saveStats(stats);
+
+  if(clean){
+    // Best time
+    const best=getBestTime();
+    const isNewBest=best===0||elapsed<best;
+    if(isNewBest)setBestTime(elapsed);
+
+    // Firebase: need nickname
+    if(fbReady&&!nickname){
+      showNickPicker(()=>{
+        // After nick chosen, submit score
+        const key=SIZES[curSize].label+'_'+DIFFS[curDiff].name+'_'+(loopMode?'Loop':'Chain');
+        fbDb.ref('dominake/scores').push({user:nickname,time:elapsed,config:key,date:new Date().toISOString()}).catch(e=>{});
+      });
+    } else if(fbReady&&nickname){
+      const key=SIZES[curSize].label+'_'+DIFFS[curDiff].name+'_'+(loopMode?'Loop':'Chain');
+      fbDb.ref('dominake/scores').push({user:nickname,time:elapsed,config:key,date:new Date().toISOString()}).catch(e=>{});
+    }
+    return isNewBest;
+  }
+  return false;
+}
+
 window.addEventListener('load',()=>{
+  initFirebase();
+  nickname=getNickname();
+  updateNickBar();
   initThemes();initSizes();initDiffs();applySize();
   if(isMobile()){document.getElementById('ref').classList.add('collapsed')}
   document.getElementById('hintToggle').className=hintMode?'on':'';
