@@ -90,7 +90,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.0</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.1</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -599,6 +599,7 @@ function renderInfo(){
 window.addEventListener('load',()=>{
   initThemes();initSizes();initDiffs();applySize();
   document.getElementById('board').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">Press ▶ New to start</div>';
+  try{if(!localStorage.getItem('dominake-tutorial-seen')){showTutorial();localStorage.setItem('dominake-tutorial-seen','1')}}catch(e){}
 });
 window.addEventListener('resize',()=>{if(grid)render()});
 </script>
