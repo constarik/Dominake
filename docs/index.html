@@ -4,20 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Dominake — Domino Snake Puzzle</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TRP1QX4878"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-TRP1QX4878');</script>
 <style>
 :root{
   --bg:#0f172a;--bg2:#1e293b;--border:#334155;--text:#f1f5f9;--muted:#64748b;
   --accent:#3b82f6;--placed:#1e3a5f;--match:#fbbf24;--break:#ef4444;
   --ok:#22c55e;--divider:#4a5568;--mark:#334155;--mark-hover:#64748b;
 }
-.theme-ocean{--bg:#0c1929;--bg2:#132f4c;--border:#1e4976;--placed:#1a3d5c;--accent:#2196f3;--divider:#2a5a8a}
-.theme-forest{--bg:#1a2e1a;--bg2:#2d4a2d;--border:#3d6b3d;--placed:#2a5a2a;--accent:#4caf50;--match:#ffeb3b;--divider:#4a7a4a}
-.theme-sunset{--bg:#2d1b2e;--bg2:#4a2c4d;--border:#6b3d6e;--placed:#5a2a5c;--accent:#e91e63;--match:#ff9800;--divider:#7a4a7c}
-.theme-sand{--bg:#2c2416;--bg2:#3d3424;--border:#5a4d36;--placed:#4a3d2a;--accent:#d4a853;--match:#f0c040;--divider:#6a5d46}
+.theme-ocean{--bg:#0c1929;--bg2:#132f4c;--border:#1e4976;--placed:#1a5585;--accent:#2196f3;--divider:#2a5a8a}
+.theme-forest{--bg:#1a2e1a;--bg2:#2d4a2d;--border:#3d6b3d;--placed:#2a6e2a;--accent:#4caf50;--match:#ffeb3b;--divider:#4a7a4a}
+.theme-sunset{--bg:#2d1b2e;--bg2:#4a2c4d;--border:#6b3d6e;--placed:#7a3080;--accent:#e91e63;--match:#ff9800;--divider:#7a4a7c}
+.theme-sand{--bg:#2c2416;--bg2:#3d3424;--border:#5a4d36;--placed:#6a5520;--accent:#d4a853;--match:#f0c040;--divider:#6a5d46}
 .theme-light{--bg:#f0f0f0;--bg2:#ffffff;--border:#ccc;--text:#1a1a1a;--muted:#666;--placed:#d0e8ff;--accent:#2563eb;--divider:#aaa;--mark:#999;--mark-hover:#666}
 
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:12px;overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;flex-direction:column;align-items:center;padding:8px;overflow:hidden}
 h1{font-size:1.5rem;margin:6px 0;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .ver{font-size:.6rem;color:var(--muted);-webkit-text-fill-color:var(--muted)}
 .subtitle{color:var(--muted);font-size:.8rem;margin-bottom:10px}
@@ -82,35 +84,92 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 .tg .tc.nb-r{border-right-color:var(--placed)}.tg .tc.nb-l{border-left-color:var(--placed)}
 .tg .tc.nb-b{border-bottom-color:var(--placed)}.tg .tc.nb-t{border-top-color:var(--placed)}
 .tut-close{display:block;margin:12px auto 0;padding:8px 24px;font-size:.9rem}
-@media(max-width:500px){
-  body{padding:8px}h1{font-size:1.3rem}
-  button{padding:5px 8px;font-size:.75rem}
-  .tg .tc{width:32px;height:32px;font-size:.8rem}
+/* Mobile compact */
+.timer{color:var(--muted);font-size:.75rem;font-variant-numeric:tabular-nums;text-align:center;min-height:1em}
+.timer.running{color:var(--text)}
+.hint-blink{animation:hintBlink 1.5s ease-in-out infinite}
+@keyframes hintBlink{0%,100%{opacity:.4}50%{opacity:1}}
+.menu-btn{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1.1rem;color:var(--text);touch-action:manipulation;line-height:1}
+.settings-panel{display:contents}
+.settings-panel.collapsed{display:none}
+#ref{transition:max-height .3s;overflow:hidden}
+#ref.collapsed .rg{display:none}
+#ref.collapsed .rt{cursor:pointer;margin:0}
+#ref .rt{cursor:pointer}
+.top-bar{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:4px}
+.game-area{display:flex;flex-direction:column;align-items:center;flex:1;min-height:0;justify-content:center}
+@media(max-width:600px){
+  body{padding:4px;gap:0}
+  h1{font-size:1.1rem;margin:2px 0}
+  .ver{font-size:.55rem}
+  .subtitle{font-size:.65rem;margin-bottom:4px}
+  .menu-btn{display:inline-block}
+  button{padding:4px 7px;font-size:.7rem}
+  .row{margin-bottom:4px;gap:4px}
+  .legend{margin:2px 0;font-size:.6rem;gap:6px}
+  #msg{font-size:.75rem;margin:2px 0}
+  .info{font-size:.7rem;margin:2px 0}
+  #ref{margin:2px auto}
+  .rt{font-size:.65rem;margin-bottom:2px}
+  .rd{font-size:.6rem;padding:1px 3px}
+  .tg .tc{width:28px;height:28px;font-size:.75rem}
+  #themes{margin-bottom:4px;gap:3px}
+  .th{width:16px;height:16px}
+}
+@media(max-height:700px){
+  h1{font-size:1rem;margin:1px 0}
+  .subtitle{display:none}
+  #themes{margin-bottom:2px}
+  .legend{display:none}
+  .row{margin-bottom:2px}
+}
+@media(max-width:600px) and (orientation:landscape){
+  body{flex-direction:row;padding:4px;gap:4px}
+  .side-panel{display:flex;flex-direction:column;gap:2px;max-width:120px;align-items:center;justify-content:center;overflow-y:auto;max-height:100%}
+  .game-area{flex:1}
+  h1{font-size:.9rem}
+  .subtitle{display:none}
+  #themes{display:none}
+  .legend{display:none}
+  button{padding:3px 6px;font-size:.65rem}
+  #ref{max-width:110px}
+  .rd{font-size:.55rem;padding:0 2px}
 }
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.3</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.7.1</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
-<div class="row">
-  <button class="on" onclick="newGame()">▶ New</button>
-  <button onclick="showSolution()">👁 Solve</button>
-  <button onclick="undoLast()">↩ Undo</button>
-  <button onclick="resetAll()">🗑 Reset</button>
-  <button id="loopBtn" onclick="toggleLoop()">🔗 Chain</button>
-  <button onclick="showInfo()">ℹ</button>
+<div class="top-bar">
+  <div class="row" style="margin:0">
+    <button class="on" onclick="newGame()">▶ New</button>
+    <button onclick="undoLast()">↩ Undo</button>
+    <button onclick="resetAll()">🗑 Reset</button>
+    <button onclick="useHint()" id="hintToggle" class="">💡 Hint</button>
+    <button class="menu-btn" onclick="toggleSettings()">⚙</button>
+  </div>
 </div>
-<div class="row" id="szRow"></div>
-<div class="row" id="diffRow"></div>
+<div id="timer" class="timer"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="row" id="szRow"></div>
+  <div class="row" id="diffRow"></div>
+  <div class="row">
+    <button onclick="showSolution()">👁 Solve</button>
+    <button id="loopBtn" onclick="toggleLoop()">🔗 Chain</button>
+    <button onclick="showInfo()">ℹ</button>
+  </div>
+</div>
 <div class="legend">
   <span><span class="d" style="background:var(--mark)"></span> Click to link</span>
   <span><span class="d" style="background:var(--match);border-radius:50%"></span> Match</span>
   <span><span class="d" style="background:var(--break);border-radius:50%"></span> Break</span>
 </div>
 <div id="msg"></div>
-<div id="board"></div>
-<div id="ref"><div class="rt">Domino Set (no doubles)</div><div class="rg" id="rg"></div></div>
+<div class="game-area">
+  <div id="board"></div>
+</div>
+<div id="ref"><div class="rt" onclick="toggleRef()">Domino Set (no doubles) ▾</div><div class="rg" id="rg"></div></div>
 <div class="info" id="info"></div>
 <div id="tutOv" style="display:none"></div>
 
@@ -137,6 +196,7 @@ let curTheme=0,curSize=1,curDiff=0;
 let ROWS,COLS,MAX_NUM,TOTAL;
 let grid,solPath,solChain,rng,lastTraps=0;
 let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false,hlDom=null;
+let gameStartTime=0,timerInterval=null,elapsed=0,gameSolved=false,gameStarted=false;
 
 function initThemes(){
   const c=document.getElementById('themes');
@@ -158,7 +218,38 @@ function initDiffs(){
 function setDiff(i){curDiff=i;document.querySelectorAll('#diffRow button').forEach((b,j)=>b.className=j===i?'on':'');newGame()}
 function toggleLoop(){loopMode=!loopMode;document.getElementById('loopBtn').textContent=loopMode?'🔄 Loop':'🔗 Chain';document.getElementById('loopBtn').className=loopMode?'on':'';newGame()}
 
-function cellSize(){const maxW=Math.min(window.innerWidth-24,500);return Math.max(28,Math.min(Math.floor(maxW/COLS),52))}
+function cellSize(){
+  const maxW=Math.min(window.innerWidth-(isMobile()?12:24),500);
+  const byW=Math.floor(maxW/COLS);
+  const ui=document.querySelector('.top-bar');
+  const hdr=document.querySelector('h1');
+  const ref=document.getElementById('ref');
+  const inf=document.getElementById('info');
+  const msg=document.getElementById('msg');
+  const leg=document.querySelector('.legend');
+  let usedH=0;
+  [hdr,ui,ref,inf,msg,leg].forEach(el=>{if(el&&el.offsetParent!==null)usedH+=el.offsetHeight});
+  const sp=document.getElementById('settingsPanel');
+  if(sp&&!sp.classList.contains('collapsed'))usedH+=sp.offsetHeight;
+  const sub=document.querySelector('.subtitle');
+  if(sub&&sub.offsetParent!==null)usedH+=sub.offsetHeight;
+  const thm=document.getElementById('themes');
+  if(thm&&thm.offsetParent!==null)usedH+=thm.offsetHeight;
+  usedH+=24;
+  const availH=window.innerHeight-usedH;
+  const byH=Math.floor(availH/ROWS);
+  return Math.max(24,Math.min(Math.min(byW,byH),52));
+}
+function isMobile(){return window.innerWidth<=600}
+function toggleSettings(){
+  const p=document.getElementById('settingsPanel');
+  p.classList.toggle('collapsed');
+  if(grid)render();
+}
+function toggleRef(){
+  document.getElementById('ref').classList.toggle('collapsed');
+  if(grid)render();
+}
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -212,14 +303,66 @@ function generate(){
   return false;
 }
 
+// ===== TIMER =====
+function startTimer(){
+  stopTimer();gameStartTime=Date.now();elapsed=0;gameSolved=false;
+  const td=document.getElementById('timer');td.classList.add('running');
+  timerInterval=setInterval(()=>{
+    if(gameSolved)return;
+    elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+    td.textContent=formatTime(elapsed);
+  },1000);
+  td.textContent='0:00';
+}
+function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}document.getElementById('timer').classList.remove('running')}
+function formatTime(s){const m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+(s%60)}
+
+// ===== HINT TOGGLE =====
+let hintMode=false;
+function useHint(){
+  if(gameStarted)return;
+  if(!grid||gameSolved)return;
+  hintMode=!hintMode;
+  updateHintToggle();
+  if(grid)render();
+}
+function markGameStarted(){
+  if(gameStarted)return;
+  gameStarted=true;
+  updateHintToggle();
+}
+function updateHintToggle(){
+  const btn=document.getElementById('hintToggle');
+  btn.className=hintMode?'on':'';
+  if(!grid||gameSolved){
+    btn.classList.remove('hint-blink');
+    btn.style.opacity='.4';btn.style.pointerEvents='none';
+  } else if(gameStarted){
+    btn.classList.remove('hint-blink');
+    btn.style.opacity='.4';btn.style.pointerEvents='none';
+  } else {
+    btn.classList.add('hint-blink');
+    btn.style.opacity='';btn.style.pointerEvents='';
+  }
+}
+
+// ===== BEST TIMES =====
+function getBestKey(){return 'dominake-best-'+curSize+'-'+curDiff+(loopMode?'-loop':'')}
+function getBestTime(){try{return parseInt(localStorage.getItem(getBestKey()))||0}catch(e){return 0}}
+function setBestTime(t){try{localStorage.setItem(getBestKey(),t)}catch(e){}}
+
 // ===== GAMEPLAY =====
 function newGame(){
   if(!generate()){document.getElementById('msg').textContent='No puzzle found — try again or change settings.';return}
   placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
+  gameSolved=false;gameStarted=false;hintMode=false;
+  if(isMobile()){document.getElementById('settingsPanel').classList.add('collapsed')}
   document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
+  updateHintToggle();
+  startTimer();
   render();
 }
-function onCellDown(r,c){if(usedCells.has(r*100+c))return;dragStart={r,c};firstClick={r,c};render()}
+function onCellDown(r,c){if(usedCells.has(r*100+c))return;markGameStarted();dragStart={r,c};firstClick={r,c};render()}
 function onCellUp(r,c){
   if(!dragStart)return;if(dragStart.r===r&&dragStart.c===c){dragStart=null;return}
   const ck=r*100+c;if(usedCells.has(ck)||!isAdj(dragStart.r,dragStart.c,r,c)){dragStart=null;return}
@@ -278,7 +421,9 @@ function showInfo(){
     '‣ 3 difficulty levels (trap-based)<br>'+
     '‣ 🔗 Chain / 🔄 Loop modes<br>'+
     '‣ 6 color themes · Snake animation on solve<br>'+
-    '‣ Undo & Reset anytime<br><br>'+
+    '‣ Undo & Reset anytime<br>'+
+    '‣ 💡 Hint toggle (before first move): OFF = blind mode ⭐; ON = tap dominos to preview<br>'+
+    '‣ ⏱ Timer + best time tracking (only without hints)<br><br>'+
     '<b style="color:var(--accent)">🧠 The Math</b><br>'+
     'Domino chain = Eulerian path in K<sub>n</sub>. Grid path = Hamiltonian path. '+
     '5×6 is <i>mathematically impossible</i> — K₆ has all vertices odd, violating the Euler condition.<br><br>'+
@@ -580,16 +725,18 @@ function renderInfo(){
     if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
     if(hlDom&&hlDom.a===a&&hlDom.b===b)d.classList.add('hl');
     d.innerHTML=a+'<span class="rdot"></span>'+b;
-    ((va,vb)=>{
-      function show(){hlDom={a:va,b:vb};renderHighlight();renderInfo()}
-      function hide(){hlDom=null;renderHighlight();renderInfo()}
-      d.addEventListener('mousedown',show);
-      d.addEventListener('mouseup',hide);
-      d.addEventListener('mouseleave',hide);
-      d.addEventListener('touchstart',e=>{e.preventDefault();show()},{passive:false});
-      d.addEventListener('touchend',hide);
-      d.addEventListener('touchcancel',hide);
-    })(a,b);
+    if(hintMode){
+      ((va,vb)=>{
+        function show(){markGameStarted();hlDom={a:va,b:vb};renderHighlight();renderInfo()}
+        function hide(){hlDom=null;renderHighlight();renderInfo()}
+        d.addEventListener('mousedown',show);
+        d.addEventListener('mouseup',hide);
+        d.addEventListener('mouseleave',hide);
+        d.addEventListener('touchstart',e=>{e.preventDefault();show()},{passive:false});
+        d.addEventListener('touchend',hide);
+        d.addEventListener('touchcancel',hide);
+      })(a,b);
+    } else {d.style.cursor='default'}
     rg.appendChild(d);
   }
   let cOk=0;const cT=userLinks.size;
@@ -602,12 +749,30 @@ function renderInfo(){
   if(placed.length===need&&cT===needLinks&&cOk===cT){
     const ds=new Set();let ok=true;
     for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);if(ds.has(k)){ok=false;break}ds.add(k)}
-    if(ok){document.getElementById('msg').textContent=loopMode?'🎉 Solved! The snake bites its tail!':'🎉 Solved! You found the domino snake!';animateSnake()}
+    if(ok){
+      gameSolved=true;stopTimer();elapsed=Math.floor((Date.now()-gameStartTime)/1000);
+      updateHintToggle();
+      const clean=!hintMode;
+      const best=getBestTime();
+      const isNewBest=clean&&(best===0||elapsed<best);
+      if(isNewBest)setBestTime(elapsed);
+      const star=clean?'⭐':'';
+      let msg=loopMode?'🎉 Solved! The snake bites its tail!':'🎉 Solved! You found the domino snake!';
+      if(star)msg+=' '+star;
+      msg+='\n⏱ '+formatTime(elapsed);
+      if(hintMode)msg+=' | 💡 Hint was on';
+      if(isNewBest)msg+=' | 🏆 New best!';
+      else if(best>0&&clean)msg+=' | Best: '+formatTime(best);
+      document.getElementById('msg').innerHTML=msg.replace(/\n/g,'<br>');
+      animateSnake();
+    }
   }
 }
 
 window.addEventListener('load',()=>{
   initThemes();initSizes();initDiffs();applySize();
+  if(isMobile()){document.getElementById('ref').classList.add('collapsed')}
+  document.getElementById('hintToggle').className=hintMode?'on':'';
   document.getElementById('board').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">Press ▶ New to start</div>';
   try{if(!localStorage.getItem('dominake-tutorial-seen')){showTutorial()}}catch(e){}
 });
