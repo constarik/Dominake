@@ -157,7 +157,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.8</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.8.1</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -824,21 +824,20 @@ function updateNickBar(){
 const VULGAR_LIST=new Set(['ass','asses','bitch','bloody','boob','boobs','butt','cock','cocks','crap','cum','damn','dick','dicks','dildo','fag','fuck','hell','homo','jerk','kinky','lust','meth','milf','moron','negro','nigga','nigger','nude','nudes','oral','orgy','penis','pimp','piss','porn','prick','pussy','queer','rape','scum','sex','sexy','shit','slut','smut','sperm','suck','tit','tits','twat','vagina','whore','weed']);
 async function fetchWords(){
   try{
-    const offset=Math.floor(Math.random()*500);
-    const r=await fetch('https://api.datamuse.com/words?sp=?????..????????&md=fp&max=200&ofs='+offset);
+    const len=5+Math.floor(Math.random()*4); // 5-8
+    const pattern='?'.repeat(len);
+    const offset=Math.floor(Math.random()*200);
+    const r=await fetch('https://api.datamuse.com/words?sp='+pattern+'&md=fp&max=200&ofs='+offset);
     const data=await r.json();
     return data.filter(w=>{
       const word=w.word.toLowerCase();
-      if(word.length<5||word.length>9)return false;
       if(!/^[a-z]+$/.test(word))return false;
       if(VULGAR_LIST.has(word))return false;
-      // check frequency exists and is reasonable
       const tags=w.tags||[];
       const fTag=tags.find(t=>t.startsWith('f:'));
       if(!fTag)return false;
       const freq=parseFloat(fTag.substring(2));
       if(freq<1)return false;
-      // must be noun
       if(!tags.includes('n'))return false;
       return true;
     }).map(w=>w.word.charAt(0).toUpperCase()+w.word.slice(1));
