@@ -108,6 +108,10 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 .nick-btn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--bg2))}
 .nick-status{color:var(--muted);font-size:.65rem;margin-top:4px}
 .nick-bar{color:var(--muted);font-size:.6rem;text-align:center;margin-top:2px}
+.share-btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:.75rem;cursor:pointer;margin-top:4px}
+.share-btn:hover{opacity:.85}
+.share-btn:active{transform:scale(.95)}
+.share-copied{color:var(--ok);font-size:.7rem;margin-left:6px}
 .menu-btn{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:1.1rem;color:var(--text);touch-action:manipulation;line-height:1}
 .settings-panel{display:contents}
 .settings-panel.collapsed{display:none}
@@ -157,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.8.2</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.9.1</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -308,22 +312,24 @@ function countTraps(grid,path,chain,rows,cols){
   return traps;
 }
 
-function generate(){
+let lastSeed=0;
+function generate(forceSeed){
   const sz=SIZES[curSize];const range=sz[DIFFS[curDiff].key];
   for(let att=0;att<500;att++){
-    rng=mulberry32(Date.now()+att*7);
-    const path=genPath(ROWS,COLS,rng);if(!path)continue;
-    const chain=genChain(path,MAX_NUM,rng);if(!chain)continue;
+    const seed=forceSeed||Date.now()+att*7;
+    rng=mulberry32(seed);
+    const path=genPath(ROWS,COLS,rng);if(!path){if(forceSeed)return false;continue}
+    const chain=genChain(path,MAX_NUM,rng);if(!chain){if(forceSeed)return false;continue}
     const g=Array.from({length:ROWS},()=>Array(COLS).fill(0));
     for(let d=0;d<chain.length;d++){g[path[d*2].r][path[d*2].c]=chain[d].a;g[path[d*2+1].r][path[d*2+1].c]=chain[d].b}
     let ok=true;
     for(let i=0;i<path.length-1;i++)if(!isAdj(path[i].r,path[i].c,path[i+1].r,path[i+1].c)){ok=false;break}
     for(let i=0;i<chain.length-1&&ok;i++)if(chain[i].b!==chain[i+1].a)ok=false;
     if(loopMode&&ok&&chain[chain.length-1].b!==chain[0].a)ok=false;
-    if(!ok)continue;
+    if(!ok){if(forceSeed)return false;continue}
     const traps=countTraps(g,path,chain,ROWS,COLS);
-    if(traps<range[0]||traps>range[1])continue;
-    grid=g;solPath=path;solChain=chain;lastTraps=traps;return true;
+    if(!forceSeed&&(traps<range[0]||traps>range[1]))continue;
+    grid=g;solPath=path;solChain=chain;lastTraps=traps;lastSeed=seed;return true;
   }
   return false;
 }
@@ -572,7 +578,14 @@ function animateSnake(){
     if(da!==undefined&&db!==undefined&&da!==db&&!adj[da].some(e=>e.to===db)){adj[da].push({to:db,via:[ak,bk]});adj[db].push({to:da,via:[bk,ak]})}
   }
   let order=null;
+  // For chain mode, start from endpoints (degree 1) first
+  const endpoints=[];const others=[];
   for(let s=0;s<placed.length;s++){
+    if(!loopMode&&adj[s].length===1)endpoints.push(s);
+    else others.push(s);
+  }
+  const tryOrder=[...endpoints,...others];
+  for(const s of tryOrder){
     const o=[];const vis=new Set();let cur=s;
     while(cur!==-1&&!vis.has(cur)){
       vis.add(cur);o.push(cur);
@@ -597,10 +610,22 @@ function animateSnake(){
     const di=order[oi],d=placed[di];
     const k1=d.r1*100+d.c1,k2=d.r2*100+d.c2;
     let first=k1,second=k2;
-    if(oi>0){
+    if(oi===0&&order.length>1){
+      // First domino: determine orientation by outgoing link
+      const nextDi=order[1];
+      for(const e of adj[di])if(e.to===nextDi){
+        // e.via[0] is our cell, e.via[1] is next domino's cell
+        // Our linking cell should be second (exit point)
+        if(e.via[0]===k1){first=k2;second=k1}
+        else{first=k1;second=k2}
+        break;
+      }
+    } else if(oi>0){
       const prev=order[oi-1];
       for(const e of adj[prev])if(e.to===di){
-        if(e.via[1]===k2){first=k2;second=k1}
+        // e.via[1] is our entry cell, should be first
+        if(e.via[1]===k1){first=k1;second=k2}
+        else{first=k2;second=k1}
         break;
       }
     }
@@ -789,6 +814,7 @@ function renderInfo(){
       if(hintMode)msg+=' | 💡 Hint was on';
       if(isNewBest)msg+=' | 🏆 New best!';
       else if(clean){const best=getBestTime();if(best>0)msg+=' | Best: '+formatTime(best)}
+      msg+='\n<button class="share-btn" onclick="shareResult()">📤 Share</button><span id="shareStatus" class="share-copied"></span>';
       document.getElementById('msg').innerHTML=msg.replace(/\n/g,'<br>');
       animateSnake();
     }
@@ -1021,6 +1047,68 @@ function onWin(elapsed,clean){
   return false;
 }
 
+// ===== SHARE & REPLAY =====
+const SEED_KEY=4481357;
+function encodeSeed(seed){
+  const x=Math.floor(seed/SEED_KEY);
+  const r=seed%SEED_KEY;
+  const cs=(seed*7+13)%97;
+  return x.toString(36)+'.'+r.toString(36)+'-'+cs.toString(36);
+}
+function decodeSeed(code){
+  const m=code.match(/^([a-z0-9]+)\.([a-z0-9]+)-([a-z0-9]+)$/);
+  if(!m)return null;
+  const x=parseInt(m[1],36);
+  const r=parseInt(m[2],36);
+  const cs=parseInt(m[3],36);
+  if(isNaN(x)||isNaN(r)||isNaN(cs))return null;
+  const seed=x*SEED_KEY+r;
+  if((seed*7+13)%97!==cs)return null;
+  return seed;
+}
+
+function getPuzzleUrl(){
+  const base=location.origin+location.pathname;
+  return base+'?p='+encodeSeed(lastSeed)+'&sz='+curSize+'&d='+curDiff+(loopMode?'&l=1':'');
+}
+
+function shareResult(){
+  const cfg=SIZES[curSize].label+' '+DIFFS[curDiff].name+(loopMode?' Loop':' Chain');
+  const clean=!hintMode;
+  const star=clean?' ⭐':'';
+  const time=formatTime(elapsed);
+  const url=getPuzzleUrl();
+  const text='🐍 Dominake — I solved '+cfg+' in '+time+'!'+star+'\nCan you beat me? '+url;
+  navigator.clipboard.writeText(text).then(()=>{
+    const sp=document.getElementById('shareStatus');
+    if(sp){sp.textContent='Copied!';setTimeout(()=>sp.textContent='',2000)}
+  }).catch(()=>{
+    prompt('Copy this:',text);
+  });
+}
+
+function loadFromUrl(){
+  const p=new URLSearchParams(location.search);
+  const code=p.get('p');
+  if(!code)return false;
+  const seed=decodeSeed(code);
+  if(!seed){document.getElementById('msg').textContent='⚠ Invalid puzzle link';return false}
+  const sz=parseInt(p.get('sz'));if(sz>=0&&sz<SIZES.length){curSize=sz;document.querySelectorAll('#szRow button').forEach((b,j)=>b.className=j===sz?'on':'')}
+  const df=parseInt(p.get('d'));if(df>=0&&df<DIFFS.length){curDiff=df;document.querySelectorAll('#diffRow button').forEach((b,j)=>b.className=j===df?'on':'')}
+  const lp=p.get('l');if(lp==='1'&&!loopMode)toggleLoop();
+  applySize();
+  if(generate(seed)){
+    placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
+    gameSolved=false;gameStarted=false;hintMode=false;
+    document.getElementById('msg').textContent='🔗 Shared puzzle — '+SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
+    updateHintToggle();startTimer();render();
+    // Clean URL without reload
+    history.replaceState(null,'',location.pathname);
+    return true;
+  }
+  return false;
+}
+
 window.addEventListener('load',()=>{
   initFirebase();
   nickname=getNickname();
@@ -1030,6 +1118,7 @@ window.addEventListener('load',()=>{
   document.getElementById('hintToggle').className=hintMode?'on':'';
   document.getElementById('board').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">Press ▶ New to start</div>';
   try{if(!localStorage.getItem('dominake-tutorial-seen')){showTutorial()}}catch(e){}
+  loadFromUrl();
 });
 window.addEventListener('resize',()=>{if(grid)render()});
 </script>
