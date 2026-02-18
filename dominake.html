@@ -90,7 +90,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v14.1</span></h1>
+<h1>🐍 Dominake <span class="ver">v14.3</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="row">
@@ -342,6 +342,7 @@ function showTutorial(){
   const d2=[...d1,{r1:0,c1:2,r2:1,c2:2}];
   const d3=[...d2,{r1:1,c1:1,r2:1,c2:0}];
   const L=['1-2','101-102'];
+  const Lbad=['1-2','1-101'];
 
   ov.innerHTML=`<div class="tut-box">
 <h2>📖 How to Play Dominake</h2>
@@ -359,21 +360,30 @@ function showTutorial(){
 </div>
 <div class="tut-step">
 <span class="n">4</span> <b>Connect the chain</b> — Click gray marks to activate links. Matching values turn <b style="color:#fbbf24">yellow ✓</b>, mismatches turn <b style="color:#ef4444">red ✗</b>.
+<div style="text-align:center;margin-top:8px">${tg(G,d3,Lbad,2,3)}</div>
+<div style="font-size:.7rem;color:var(--muted);margin-top:6px;text-align:center">
+0|<b style="color:#fbbf24">1</b> — <b style="color:#fbbf24">1</b>|2 ✓ &nbsp;&nbsp; 0|<b style="color:#ef4444">1</b> — <b style="color:#ef4444">2</b>|0 ✗ &nbsp;&nbsp; Wrong link!
+</div>
+</div>
+<div class="tut-step">
+<span class="n">5</span> <b>Fix it!</b> — Remove the red link, connect the right ones. All yellow = 🎉
 <div style="text-align:center;margin-top:8px">${tg(G,d3,L,2,3)}</div>
 <div style="font-size:.7rem;color:var(--muted);margin-top:6px;text-align:center">
 0|<b style="color:#fbbf24">1</b> — <b style="color:#fbbf24">1</b>|2 ✓ &nbsp;&nbsp; 1|<b style="color:#fbbf24">2</b> — <b style="color:#fbbf24">2</b>|0 ✓ &nbsp;&nbsp; 🎉 Snake!
 </div>
 </div>
 <div class="tut-step">
-<span class="n">5</span> <b>Undo</b> — Placed wrong? Press <b>↩ Undo</b> to remove the last domino and its links. Repeat as needed.
+<span class="n">6</span> <b>Undo</b> — Placed wrong? Press <b>↩ Undo</b> to remove the last domino and its links. Repeat as needed.
 <div style="text-align:center;margin-top:8px">${tg(G,d2,[],2,3)}</div>
 <div style="font-size:.7rem;color:var(--muted);margin-top:4px;text-align:center">After undoing domino 2|0</div>
 </div>
 <div class="tut-step">
-<span class="n">6</span> <b>Win condition</b> — All unique dominoes placed + N−1 matching links = 🎉<br>
+<span class="n">7</span> <b>Win condition</b> — All unique dominoes placed + N−1 matching links = 🎉<br>
 <b>Traps</b> = adjacent cells with same value that aren't part of the solution chain. More traps = harder puzzle!
 </div>
 <button class="tut-close on" onclick="document.getElementById('tutOv').style.display='none'">Got it!</button>
+<button class="tut-close" onclick="try{localStorage.setItem('dominake-tutorial-seen','1')}catch(e){}document.getElementById('tutOv').style.display='none'" style="margin-top:6px;font-size:.75rem;opacity:.7">Don't show again</button>
+<div style="text-align:center;margin-top:10px;font-size:.65rem;color:var(--muted)">You can always find me under the <b>ℹ</b> button</div>
 </div>`;
 }
 
@@ -599,7 +609,7 @@ function renderInfo(){
 window.addEventListener('load',()=>{
   initThemes();initSizes();initDiffs();applySize();
   document.getElementById('board').innerHTML='<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">Press ▶ New to start</div>';
-  try{if(!localStorage.getItem('dominake-tutorial-seen')){showTutorial();localStorage.setItem('dominake-tutorial-seen','1')}}catch(e){}
+  try{if(!localStorage.getItem('dominake-tutorial-seen')){showTutorial()}}catch(e){}
 });
 window.addEventListener('resize',()=>{if(grid)render()});
 </script>
