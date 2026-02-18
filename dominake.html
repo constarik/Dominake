@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.0</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.0.2</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -361,6 +361,7 @@ function useHint(){
 function markGameStarted(){
   if(gameStarted)return;
   gameStarted=true;
+  startTimer();
   updateHintToggle();
 }
 function updateHintToggle(){
@@ -394,7 +395,7 @@ function newGame(){
   if(isMobile()){document.getElementById('settingsPanel').classList.add('collapsed')}
   document.getElementById('msg').textContent=SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
   updateHintToggle();
-  startTimer();
+  stopTimer();document.getElementById('timer').textContent='0:00';
   render();
 }
 function onCellDown(r,c){if(usedCells.has(r*100+c))return;markGameStarted();dragStart={r,c};firstClick={r,c};render()}
@@ -446,7 +447,7 @@ function showInfo(){
     '‣ Click gray marks between dominoes → toggle chain link<br>'+
     '‣ <span style="color:var(--match)">Yellow</span> = values match ✓ &nbsp; <span style="color:var(--break)">Red</span> = mismatch ✗<br>'+
     '‣ Chain mode: N−1 matching links &nbsp;|&nbsp; Loop mode: N links</div>'+
-    '<div class="tut-step"><b style="color:var(--accent)">🔍 Domino Preview</b><br>'+
+    '<div class="tut-step"><b style="color:var(--accent)">🔍 Domino Preview</b> (💡 Hint ON only)<br>'+
     'Hold any domino in the set below to highlight all matching positions:<br>'+
     '‣ <span style="color:var(--ok)">●</span> Green = both cells free, ready to place<br>'+
     '‣ <span style="color:var(--accent)">●</span> Blue = one cell already occupied<br>'+
@@ -1105,7 +1106,7 @@ function loadFromUrl(){
     placed=[];usedCells=new Set();firstClick=null;userLinks=new Set();hlDom=null;
     gameSolved=false;gameStarted=false;hintMode=false;
     document.getElementById('msg').textContent='🔗 Shared puzzle — '+SIZES[curSize].label+' '+DIFFS[curDiff].emoji+' '+DIFFS[curDiff].name+(loopMode?' 🔄Loop':'')+' ('+lastTraps+' traps)';
-    updateHintToggle();startTimer();render();
+    updateHintToggle();stopTimer();document.getElementById('timer').textContent='0:00';render();
     // Clean URL without reload
     history.replaceState(null,'',location.pathname);
     return true;
