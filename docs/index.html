@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.4</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.5</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -821,6 +821,26 @@ function renderInfo(){
   if(placed.length===need&&cT===needLinks&&cOk===cT){
     const ds=new Set();let ok=true;
     for(const d of placed){const a=grid[d.r1][d.c1],b=grid[d.r2][d.c2];const k=Math.min(a,b)*100+Math.max(a,b);if(ds.has(k)){ok=false;break}ds.add(k)}
+    // Topology check: links must form a valid chain/loop through ALL dominoes
+    if(ok){
+      const cellDomW={};
+      for(let i=0;i<placed.length;i++){const d=placed[i];cellDomW[d.r1*100+d.c1]=i;cellDomW[d.r2*100+d.c2]=i}
+      const adjW=Array.from({length:placed.length},()=>[]);
+      for(const lk of userLinks){
+        const[ak,bk]=lk.split('-').map(Number);
+        const da=cellDomW[ak],db=cellDomW[bk];
+        if(da!==undefined&&db!==undefined&&da!==db&&!adjW[da].includes(db)){adjW[da].push(db);adjW[db].push(da)}
+      }
+      for(let i=0;i<placed.length&&ok;i++){
+        const deg=adjW[i].length;
+        if(loopMode?deg!==2:(deg!==1&&deg!==2))ok=false;
+      }
+      if(ok){
+        const visW=new Set([0]);const q=[0];
+        while(q.length){const n=q.shift();for(const nb of adjW[n])if(!visW.has(nb)){visW.add(nb);q.push(nb)}}
+        if(visW.size!==placed.length)ok=false;
+      }
+    }
     if(ok){
       gameSolved=true;stopTimer();elapsed=Math.floor((Date.now()-gameStartTime)/1000);
       updateHintToggle();
