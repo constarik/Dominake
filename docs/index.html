@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.9</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.2.0</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -225,7 +225,7 @@ let curTheme=0,curSize=1,curDiff=0;
 let ROWS,COLS,MAX_NUM,TOTAL;
 let grid,solPath,solChain,rng,lastTraps=0;
 let placed=[],usedCells=new Set(),firstClick=null,userLinks=new Set(),dragStart=null,loopMode=false,hlDom=null,solutionShown=false;
-let gameStartTime=0,timerInterval=null,elapsed=0,gameSolved=false,gameStarted=false;
+let gameStartTime=0,timerInterval=null,elapsed=0,gameSolved=false,gameStarted=false,isAnimating=false;
 
 function initThemes(){
   const c=document.getElementById('themes');
@@ -668,7 +668,9 @@ function drawSnakeSvg(pts){
   line.setAttribute('points',pstr);line.classList.add('snake-line');
   let len=0;for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;len+=Math.sqrt(dx*dx+dy*dy)}
   line.style.strokeDasharray=len;line.style.setProperty('--len',len);
-  line.style.animation=`snakeDraw ${Math.max(1.5,len/300)}s ease-out forwards, snakePulse 2s ease-in-out 2s infinite`;
+  const drawDur=Math.max(1.5,len/300);
+  line.style.animation=`snakeDraw ${drawDur}s ease-out forwards, snakePulse 2s ease-in-out 2s infinite`;
+  isAnimating=true;setTimeout(()=>{isAnimating=false},drawDur*1000+100);
   svg.appendChild(line);
   function addLabel(x,y,text){
     const lb=document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -797,7 +799,7 @@ function renderInfo(){
     if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
     if(hlDom&&hlDom.a===a&&hlDom.b===b)d.classList.add('hl');
     d.innerHTML=a+'<span class="rdot"></span>'+b;
-    if(hintMode&&!gameSolved){
+    if(hintMode&&!gameSolved&&!isAnimating){
       ((va,vb)=>{
         function show(){markGameStarted();hlDom={a:va,b:vb};renderHighlight();renderInfo()}
         function hide(){hlDom=null;renderHighlight();renderInfo()}
