@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.5</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.6</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -432,7 +432,7 @@ function showSolution(){
     if(d<solChain.length-1){const e=solPath[d*2+1],s=solPath[(d+1)*2];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
   }
   if(loopMode){const e=solPath[solPath.length-1],s=solPath[0];const ek=e.r*100+e.c,sk=s.r*100+s.c;userLinks.add(Math.min(ek,sk)+'-'+Math.max(ek,sk))}
-  render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
+  markGameStarted();render();document.getElementById('msg').textContent='Solution shown.';animateSnake();
 }
 
 // ===== INFO & TUTORIAL =====
