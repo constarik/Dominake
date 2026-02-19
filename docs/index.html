@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.7</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.8</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -1125,8 +1125,24 @@ function shareResult(){
     const sp=document.getElementById('shareStatus');
     if(sp){sp.textContent='Copied!';setTimeout(()=>sp.textContent='',2000)}
   }).catch(()=>{
-    prompt('Copy this:',text);
+    showCopyModal(text);
   });
+}
+
+function showCopyModal(text){
+  const existing=document.getElementById('copyOv');if(existing)existing.remove();
+  const ov=document.createElement('div');ov.id='copyOv';ov.className='tut-overlay';ov.style.display='flex';
+  ov.innerHTML=`<div class="tut-box" style="max-width:400px">
+<h2 style="margin-bottom:12px">📤 Share</h2>
+<p style="font-size:.8rem;color:var(--muted);margin-bottom:8px">Copy this:</p>
+<textarea id="copyText" readonly style="width:100%;box-sizing:border-box;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.8rem;resize:none;height:80px;font-family:inherit">${text}</textarea>
+<div style="display:flex;gap:8px;margin-top:12px;justify-content:center">
+<button class="on" onclick="(function(){const t=document.getElementById('copyText');t.select();t.setSelectionRange(0,99999);try{document.execCommand('copy')}catch(e){}const b=document.getElementById('copyBtn');b.textContent='✅ Copied!';setTimeout(()=>b.textContent='📋 Copy',1500)})()" id="copyBtn">📋 Copy</button>
+<button onclick="document.getElementById('copyOv').remove()">Close</button>
+</div>
+</div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{const t=document.getElementById('copyText');if(t)t.select()},50);
 }
 
 function loadFromUrl(){
