@@ -161,7 +161,7 @@ button.on{background:var(--accent);border-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
-<h1>🐍 Dominake <span class="ver">v15.1.8</span></h1>
+<h1>🐍 Dominake <span class="ver">v15.1.9</span></h1>
 <div class="subtitle">Domino Snake Puzzle</div>
 <div id="themes"></div>
 <div class="top-bar">
@@ -797,7 +797,7 @@ function renderInfo(){
     if(dc[k]===1)d.classList.add('ok');else if(dc[k]>1)d.classList.add('dup');
     if(hlDom&&hlDom.a===a&&hlDom.b===b)d.classList.add('hl');
     d.innerHTML=a+'<span class="rdot"></span>'+b;
-    if(hintMode){
+    if(hintMode&&!gameSolved){
       ((va,vb)=>{
         function show(){markGameStarted();hlDom={a:va,b:vb};renderHighlight();renderInfo()}
         function hide(){hlDom=null;renderHighlight();renderInfo()}
